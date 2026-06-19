@@ -2,22 +2,277 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RealRPG Városháza</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div id="app">
-        <!--
-            This file is intentionally minimal; all menus and dialogues are handled via
-            ox_lib context menus and input dialogues.  If you wish to build a full
-            front‑end for the city hall, you can use this document as the root of
-            your Vue or React application.  The associated style.css contains
-            basic styling.
-        -->
-        <h1>RealRPG Városháza</h1>
-        <p>Ez az oldal jelenleg nem használható, mert a menük a játékon belül jelennek meg.</p>
+    <div id="app" class="hidden">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-landmark"></i>
+                </div>
+                <h2>Városháza</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="main">
+                    <i class="fas fa-home"></i>
+                    <div class="nav-text">
+                        <span class="nav-title">Főoldal</span>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-page="insurance">
+                    <i class="fas fa-shield-alt"></i>
+                    <div class="nav-text">
+                        <span class="nav-title">Biztosítás</span>
+                        <span class="nav-desc">Kötelező biztosítás kötése...</span>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-page="documents">
+                    <i class="fas fa-file-alt"></i>
+                    <div class="nav-text">
+                        <span class="nav-title">Okmányok</span>
+                        <span class="nav-desc">Okmányok igénylése, átvétele...</span>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-page="fines" id="nav-fines">
+                    <i class="fas fa-gavel"></i>
+                    <div class="nav-text">
+                        <span class="nav-title">Bírságok</span>
+                        <span class="nav-desc">Bírságok és számlák kezelése...</span>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-page="vin" id="nav-vin">
+                    <i class="fas fa-car"></i>
+                    <div class="nav-text">
+                        <span class="nav-title">VIN Ellenőrzés</span>
+                        <span class="nav-desc">Jármű információk lekérdezése...</span>
+                    </div>
+                </a>
+                <a href="#" class="nav-item" data-page="receipt" id="nav-receipt">
+                    <i class="fas fa-receipt"></i>
+                    <div class="nav-text">
+                        <span class="nav-title">Nyugta</span>
+                        <span class="nav-desc">Nyugta kiállítása vásárlónak...</span>
+                    </div>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <span class="version">v1.0.9</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="content-header">
+                <h1 id="page-title">Üdvözlünk a Városházán</h1>
+                <button class="close-btn" id="close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="content-body">
+                <!-- Main Page -->
+                <div class="page active" id="page-main">
+                    <div class="welcome-section">
+                        <div class="welcome-icon">
+                            <i class="fas fa-landmark"></i>
+                        </div>
+                        <h2>RealRPG Városháza</h2>
+                        <p>Válassz a bal oldali menüből a kívánt szolgáltatás eléréséhez.</p>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-shield-alt"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Biztosítás</span>
+                                <span class="stat-value">Kötelező biztosítás kötése járművedre</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Okmányok</span>
+                                <span class="stat-value">Személyi, szerződések, átírás</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-gavel"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Bírságok</span>
+                                <span class="stat-value">Bírságok és számlák kezelése</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-car"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">VIN Ellenőrzés</span>
+                                <span class="stat-value">Jármű tulajdonos és biztosítás</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insurance Page -->
+                <div class="page" id="page-insurance">
+                    <div class="page-intro">
+                        <h3>Kötelező biztosítás</h3>
+                        <p>Kösd meg járműved kötelező biztosítását az alábbi űrlap kitöltésével.</p>
+                    </div>
+                    <div class="form-card">
+                        <div class="form-group">
+                            <label for="insurance-plate">Rendszám</label>
+                            <input type="text" id="insurance-plate" placeholder="Pl. ABC123" maxlength="8" />
+                        </div>
+                        <div class="form-info">
+                            <div class="info-row">
+                                <span>Ár:</span>
+                                <span class="gold" id="insurance-price">50 000 Ft</span>
+                            </div>
+                            <div class="info-row">
+                                <span>Érvényesség:</span>
+                                <span id="insurance-duration">30 nap</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" id="btn-buy-insurance">
+                            <i class="fas fa-check"></i> Biztosítás megkötése
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Documents Page -->
+                <div class="page" id="page-documents">
+                    <div class="page-intro">
+                        <h3>Okmányok</h3>
+                        <p>Válaszd ki az igényelni kívánt okmányt az alábbi listából.</p>
+                    </div>
+                    <div class="documents-grid" id="documents-grid">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+
+                <!-- Fines Page -->
+                <div class="page" id="page-fines">
+                    <div class="page-intro">
+                        <h3>Bírság / Számla kiállítása</h3>
+                        <p>Válassz az alábbi lehetőségek közül.</p>
+                    </div>
+                    <div class="tabs">
+                        <button class="tab active" data-tab="fine-tab">Bírság</button>
+                        <button class="tab" data-tab="invoice-tab">Számla</button>
+                    </div>
+                    <div class="tab-content active" id="fine-tab">
+                        <div class="form-card">
+                            <div class="form-group">
+                                <label for="fine-target">Játékos ID</label>
+                                <input type="number" id="fine-target" placeholder="Cél játékos ID" min="1" />
+                            </div>
+                            <div class="form-group">
+                                <label for="fine-desc">Sértés leírása</label>
+                                <input type="text" id="fine-desc" placeholder="Pl. Gyorshajtás" />
+                            </div>
+                            <div class="form-group">
+                                <label for="fine-amount">Összeg (Ft)</label>
+                                <input type="number" id="fine-amount" placeholder="5000 - 100000" min="5000" max="100000" />
+                            </div>
+                            <div class="form-group">
+                                <label for="fine-due">Fizetési határidő (nap)</label>
+                                <input type="number" id="fine-due" placeholder="0 = azonnal" min="0" />
+                            </div>
+                            <button class="btn-primary" id="btn-issue-fine">
+                                <i class="fas fa-gavel"></i> Bírság kiállítása
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-content" id="invoice-tab">
+                        <div class="form-card">
+                            <div class="form-group">
+                                <label for="invoice-target">Vásárló ID</label>
+                                <input type="number" id="invoice-target" placeholder="Cél játékos ID" min="1" />
+                            </div>
+                            <div class="form-group">
+                                <label for="invoice-desc">Termék / szolgáltatás</label>
+                                <input type="text" id="invoice-desc" placeholder="Leírás" />
+                            </div>
+                            <div class="form-group">
+                                <label for="invoice-qty">Mennyiség</label>
+                                <input type="number" id="invoice-qty" placeholder="1" min="1" value="1" />
+                            </div>
+                            <div class="form-group">
+                                <label for="invoice-price">Egységár (Ft)</label>
+                                <input type="number" id="invoice-price" placeholder="Ár" min="1" />
+                            </div>
+                            <div class="form-group">
+                                <label for="invoice-tax">Adó (%)</label>
+                                <input type="number" id="invoice-tax" placeholder="0" min="0" max="100" value="0" />
+                            </div>
+                            <button class="btn-primary" id="btn-issue-invoice">
+                                <i class="fas fa-file-invoice"></i> Számla kiállítása
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIN Check Page -->
+                <div class="page" id="page-vin">
+                    <div class="page-intro">
+                        <h3>VIN Ellenőrzés</h3>
+                        <p>Add meg a jármű rendszámát vagy VIN számát az adatok lekérdezéséhez.</p>
+                    </div>
+                    <div class="form-card">
+                        <div class="form-group">
+                            <label for="vin-query">Rendszám / VIN</label>
+                            <input type="text" id="vin-query" placeholder="Rendszám vagy VIN szám" />
+                        </div>
+                        <button class="btn-primary" id="btn-vin-check">
+                            <i class="fas fa-search"></i> Lekérdezés
+                        </button>
+                    </div>
+                    <div class="vin-result hidden" id="vin-result">
+                        <h4>Eredmény</h4>
+                        <div class="result-grid" id="vin-result-grid">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Receipt Page -->
+                <div class="page" id="page-receipt">
+                    <div class="page-intro">
+                        <h3>Nyugta kiállítása</h3>
+                        <p>Állíts ki nyugtát a vásárlónak. Szükséges: fizetési terminál + hőpapír.</p>
+                    </div>
+                    <div class="form-card">
+                        <div class="form-group">
+                            <label for="receipt-target">Vásárló ID</label>
+                            <input type="number" id="receipt-target" placeholder="Játékos ID" min="1" />
+                        </div>
+                        <div class="form-group">
+                            <label for="receipt-desc">Termék / szolgáltatás</label>
+                            <input type="text" id="receipt-desc" placeholder="Leírás" />
+                        </div>
+                        <div class="form-group">
+                            <label for="receipt-qty">Mennyiség</label>
+                            <input type="number" id="receipt-qty" placeholder="1" min="1" value="1" />
+                        </div>
+                        <div class="form-group">
+                            <label for="receipt-price">Egységár (Ft)</label>
+                            <input type="number" id="receipt-price" placeholder="Ár" min="1" />
+                        </div>
+                        <div class="form-group">
+                            <label for="receipt-tax">Adó (%)</label>
+                            <input type="number" id="receipt-tax" placeholder="0" min="0" max="100" value="0" />
+                        </div>
+                        <button class="btn-primary" id="btn-issue-receipt">
+                            <i class="fas fa-receipt"></i> Nyugta kiállítása
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="app.js"></script>
 </body>

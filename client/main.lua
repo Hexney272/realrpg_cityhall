@@ -1,16 +1,18 @@
 local Config = Config
 
 -- cache frequently used globals
-local lib = lib
 local CreateThread = CreateThread
 local PlayerPedId = PlayerPedId
 local GetEntityCoords = GetEntityCoords
 local DrawMarker = DrawMarker
 
--- Helper to check if player has one of the specified jobs.  Uses ESX
--- PlayerData to retrieve the current job name.
+-- ESX shared object
 local ESX = exports['es_extended']:getSharedObject()
 
+-- State
+local isUIOpen = false
+
+-- Helper to check if player has one of the specified jobs
 local function hasJob(jobNames)
     if not jobNames or #jobNames == 0 then return false end
     local playerData = ESX.GetPlayerData()
@@ -21,6 +23,123 @@ local function hasJob(jobNames)
     end
     return false
 end
+
+-- Build visible documents list based on config
+local function getVisibleDocuments()
+    local docs = {}
+    for _, doc in ipairs(Config.Documents) do
+        local visible = true
+        if type(doc.visible) == 'function' then
+            visible = doc.visible()
+        elseif type(doc.visible) == 'boolean' then
+            visible = doc.visible
+        end
+        if visible ~= false then
+            docs[#docs+1] = {
+                id = doc.id,
+                label = doc.label,
+                price = doc.price,
+                wait = doc.wait
+            }
+        end
+    end
+    return docs
+end
+
+-- Open the NUI
+function openCityHallUI()
+    if isUIOpen then return end
+    isUIOpen = true
+
+    -- Determine permissions
+    local perms = {
+        fines = hasJob(Config.Fines.FineJobs),
+        vin = hasJob(Config.VINCheckJobs),
+        receipt = Config.UseReceipts and hasJob(Config.Fines.FineJobs)
+    }
+
+    -- Send data to NUI
+    SendNUIMessage({
+        action = 'open',
+        config = {
+            insurancePrice = Config.Insurance.price,
+            insuranceDuration = Config.Insurance.duration,
+            documents = getVisibleDocuments()
+        },
+        permissions = perms
+    })
+
+    SetNuiFocus(true, true)
+end
+
+-- Close the NUI
+function closeCityHallUI()
+    if not isUIOpen then return end
+    isUIOpen = false
+    SetNuiFocus(false, false)
+end
+
+-- NUI Callbacks
+RegisterNUICallback('closeUI', function(_, cb)
+    closeCityHallUI()
+    cb('ok')
+end)
+
+RegisterNUICallback('buyInsurance', function(data, cb)
+    if data.plate and data.plate ~= '' then
+        TriggerServerEvent('realrpg_cityhall:buyInsurance', data.plate)
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('requestDocument', function(data, cb)
+    if data.docId and data.docId ~= '' then
+        TriggerServerEvent('realrpg_cityhall:requestDocument', data.docId)
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('issueFine', function(data, cb)
+    if data.targetId and data.description and data.amount then
+        TriggerServerEvent('realrpg_cityhall:issueFine', data.targetId, {
+            description = data.description,
+            amount = data.amount,
+            dueDays = data.dueDays or 0
+        })
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('issueInvoice', function(data, cb)
+    if data.targetId and data.description and data.unitPrice then
+        TriggerServerEvent('realrpg_cityhall:issueInvoice', data.targetId, {
+            description = data.description,
+            quantity = data.quantity or 1,
+            unitPrice = data.unitPrice,
+            taxPercent = data.taxPercent or 0
+        })
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('vinCheck', function(data, cb)
+    if data.query and data.query ~= '' then
+        TriggerServerEvent('realrpg_cityhall:vinCheck', data.query)
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('issueReceipt', function(data, cb)
+    if data.targetId and data.description and data.unitPrice then
+        TriggerServerEvent('realrpg_cityhall:issueReceipt', data.targetId, {
+            description = data.description,
+            quantity = data.quantity or 1,
+            unitPrice = data.unitPrice,
+            taxPercent = data.taxPercent or 0
+        })
+    end
+    cb('ok')
+end)
 
 -- Main thread draws marker and handles interaction prompts
 CreateThread(function()
@@ -34,23 +153,25 @@ CreateThread(function()
         if dist < Config.CityHall.markerDistance then
             DrawMarker(marker.type, coords.x, coords.y, coords.z - 0.95, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, marker.size.x, marker.size.y, marker.size.z, marker.color.r, marker.color.g, marker.color.b, marker.color.a, false, false, 2, nil, nil, false)
             if dist < Config.CityHall.interactDistance then
-                if not isShowingUI then
-                    lib.showTextUI('[E] Városháza szolgáltatások', { position = 'right-center' })
+                if not isShowingUI and not isUIOpen then
+                    exports.ox_lib:showTextUI('[E] Városháza', { position = 'right-center' })
                     isShowingUI = true
                 end
-                if IsControlJustReleased(0, 38) then
-                    openMainMenu()
+                if IsControlJustReleased(0, 38) and not isUIOpen then
+                    exports.ox_lib:hideTextUI()
+                    isShowingUI = false
+                    openCityHallUI()
                 end
             else
                 if isShowingUI then
-                    lib.hideTextUI()
+                    exports.ox_lib:hideTextUI()
                     isShowingUI = false
                 end
             end
             Wait(0)
         else
             if isShowingUI then
-                lib.hideTextUI()
+                exports.ox_lib:hideTextUI()
                 isShowingUI = false
             end
             Wait(1000)
@@ -58,314 +179,51 @@ CreateThread(function()
     end
 end)
 
--- Build the main menu context
-function openMainMenu()
-    local options = {}
-
-    -- Insurance purchase
-    options[#options+1] = {
-        title = 'Kötelező biztosítás',
-        description = ('Vásárlás %d Ft áron (%d nap)'):format(Config.Insurance.price, Config.Insurance.duration),
-        icon = 'list-alt',
-        onSelect = function()
-            local input = lib.inputDialog('Biztosítás kötés', {
-                { type = 'input', label = 'Rendszám', description = 'Add meg a jármű rendszámát', required = true }
-            })
-            if input then
-                TriggerServerEvent('realrpg_cityhall:buyInsurance', input[1])
-            end
-        end
-    }
-
-    -- Document ordering submenu
-    options[#options+1] = {
-        title = 'Okmányok',
-        description = 'Igényelj vagy vedd át okmányaidat',
-        icon = 'file-alt',
-        onSelect = function()
-            openDocumentsMenu()
-        end
-    }
-
-    -- Fine/invoice menu (accessible only to jobs listed in Config.Fines.FineJobs)
-    if hasJob(Config.Fines.FineJobs) then
-        options[#options+1] = {
-            title = 'Bírság / Számla kiállítása',
-            description = 'Szabálysértési bírság vagy cég számla',
-            icon = 'file-invoice-dollar',
-            onSelect = function()
-                openFineMenu()
-            end
-        }
-    end
-
-    -- VIN check menu for authorised jobs
-    if hasJob(Config.VINCheckJobs) then
-        options[#options+1] = {
-            title = 'VIN ellenőrzés',
-            description = 'Jármű / biztosítás információk lekérdezése',
-            icon = 'search',
-            onSelect = function()
-                openVINCheckMenu()
-            end
-        }
-    end
-
-    -- Receipt issuance menu (for businesses using payment terminals)
-    if Config.UseReceipts and hasJob(Config.Fines.FineJobs) then
-        options[#options+1] = {
-            title = 'Nyugta kiállítása',
-            description = 'Termék vagy szolgáltatás eladásakor nyugta kiállítása',
-            icon = 'receipt',
-            onSelect = function()
-                openReceiptMenu()
-            end
-        }
-    end
-
-    lib.registerContext({
-        id = 'cityhall_main',
-        title = 'Városháza',
-        options = options
-    })
-    lib.showContext('cityhall_main')
-end
-
--- Receipt issuing menu
-function openReceiptMenu()
-    local input = lib.inputDialog('Nyugta kiállítása', {
-        { type = 'number', label = 'Vásárló ID', required = true },
-        { type = 'input', label = 'Termék / szolgáltatás leírása', required = true },
-        { type = 'number', label = 'Mennyiség', required = true, min = 1 },
-        { type = 'number', label = 'Egységár (Ft)', required = true, min = 1 },
-        { type = 'number', label = 'Adó (%)', required = false }
-    })
-    if input then
-        local buyer = input[1]
-        local desc = input[2]
-        local qty = input[3]
-        local price = input[4]
-        local tax = input[5] or 0
-        TriggerServerEvent('realrpg_cityhall:issueReceipt', buyer, {
-            description = desc,
-            quantity = qty,
-            unitPrice = price,
-            taxPercent = tax
+-- Receive notifications from server and forward to NUI
+RegisterNetEvent('realrpg_cityhall:notify', function(title, msg, nType)
+    if isUIOpen then
+        SendNUIMessage({
+            action = 'notify',
+            message = (title and title ~= '') and (title .. ': ' .. msg) or msg,
+            type = nType or 'inform'
         })
-    end
-end
-
--- Documents submenu
-function openDocumentsMenu()
-    local opts = {}
-    for _, doc in ipairs(Config.Documents) do
-        local visible = true
-        if type(doc.visible) == 'function' then
-            -- Support function callback to determine visibility (allows dynamic checks)
-            visible = doc.visible()
-        elseif type(doc.visible) == 'boolean' then
-            visible = doc.visible
-        end
-        if visible ~= false then
-            opts[#opts+1] = {
-                title = doc.label,
-                description = ('Ár: %d Ft | Feldolgozási idő: %s'):format(doc.price, doc.wait > 0 and (doc.wait .. 's') or 'Azonnal'),
-                onSelect = function()
-                    TriggerServerEvent('realrpg_cityhall:requestDocument', doc.id)
-                end
-            }
-        end
-    end
-    opts[#opts+1] = { title = 'Vissza', icon = 'arrow-left', onSelect = openMainMenu }
-    lib.registerContext({ id = 'cityhall_docs', title = 'Okmányok', menu = 'cityhall_main', options = opts })
-    lib.showContext('cityhall_docs')
-end
-
--- Fine/invoice menu
-function openFineMenu()
-    lib.registerContext({
-        id = 'cityhall_fine',
-        title = 'Bírság / Számla',
-        menu = 'cityhall_main',
-        options = {
-            {
-                title = 'Szabálysértési bírság',
-                description = 'Kötelező mezők: Részletek, összeg, határidő',
-                icon = 'gavel',
-                onSelect = function()
-                    local input = lib.inputDialog('Szabálysértési bírság', {
-                        { type = 'number', label = 'Átadni kívánt játékos ID', description = 'A cél játékos ID-je', required = true },
-                        { type = 'input', label = 'Sértés leírása', required = true },
-                        { type = 'number', label = 'Összeg (Ft)', description = ('Minimum %d, maximum %d'):format(Config.Fines.fineRange.min, Config.Fines.fineRange.max), required = true, min = Config.Fines.fineRange.min, max = Config.Fines.fineRange.max },
-                        { type = 'number', label = 'Fizetési határidő (nap)', description = '0 = azonnal', required = true, min = 0 }
-                    })
-                    if input then
-                        TriggerServerEvent('realrpg_cityhall:issueFine', input[1], {
-                            description = input[2],
-                            amount = input[3],
-                            dueDays = input[4]
-                        })
-                    end
-                end
-            },
-            {
-                title = 'Céges számla',
-                description = 'Termék/szolgáltatás értékesítés',
-                icon = 'file-invoice',
-                onSelect = function()
-                    local input = lib.inputDialog('Céges számla kiállítása', {
-                        { type = 'number', label = 'Vásárló ID', required = true },
-                        { type = 'input', label = 'Termék / szolgáltatás leírása', required = true },
-                        { type = 'number', label = 'Mennyiség', required = true, min = 1 },
-                        { type = 'number', label = 'Egységár (Ft)', required = true, min = 1 },
-                        { type = 'number', label = 'Adó (%)', required = false }
-                    })
-                    if input then
-                        local buyerId = input[1]
-                        local itemDesc = input[2]
-                        local qty = input[3]
-                        local unitPrice = input[4]
-                        local tax = input[5] or 0
-                        TriggerServerEvent('realrpg_cityhall:issueInvoice', buyerId, {
-                            description = itemDesc,
-                            quantity = qty,
-                            unitPrice = unitPrice,
-                            taxPercent = tax
-                        })
-                    end
-                end
-            },
-            { title = 'Vissza', icon = 'arrow-left', onSelect = openMainMenu }
-        }
-    })
-    lib.showContext('cityhall_fine')
-end
-
--- VIN check menu
-function openVINCheckMenu()
-    -- If target mode is enabled, attempt to detect the vehicle in front of the player
-    if Config.CheckVIN and Config.CheckVIN.useOnTarget then
-        local ped = PlayerPedId()
-        local coords = GetEntityCoords(ped)
-        local forward = GetOffsetFromEntityInWorldCoords(ped, 0.0, 3.0, 0.0)
-        local rayHandle = StartShapeTestRay(coords.x, coords.y, coords.z, forward.x, forward.y, forward.z, 2, ped, 0)
-        local _, hit, hitPos, surfaceNormal, entityHit = GetShapeTestResult(rayHandle)
-        if hit == 1 and DoesEntityExist(entityHit) and GetEntityType(entityHit) == 2 then
-            local plate = GetVehicleNumberPlateText(entityHit)
-            if plate and plate ~= '' then
-                TriggerServerEvent('realrpg_cityhall:vinCheck', plate)
-                return
-            end
-        end
-        lib.notify({ title = 'VIN ellenőrzés', description = 'Nincs jármű előtted. Lépj közelebb, vagy használj manuális bevitelt.', type = 'error' })
     else
-        local input = lib.inputDialog('VIN lekérdezés', {
-            { type = 'input', label = 'Jármű VIN vagy rendszám', description = 'Adj meg VIN számot vagy rendszámot', required = true }
+        -- Fallback to ox_lib notify when UI is closed
+        exports.ox_lib:notify({
+            title = title,
+            description = msg,
+            type = nType or 'inform'
         })
-        if input then
-            TriggerServerEvent('realrpg_cityhall:vinCheck', input[1])
-        end
     end
-end
-
--- Receive notifications from server
-RegisterNetEvent('realrpg_cityhall:notify', function(title, msg, type)
-    lib.notify({
-        title = title,
-        description = msg,
-        type = type or 'inform'
-    })
 end)
 
 -- Receive document ready event
 RegisterNetEvent('realrpg_cityhall:documentReady', function(item, metadata)
-    -- When the server notifies that a document is ready, give it to player
-    lib.notify({ title = 'Okmány elkészült', description = ('Megkaptad a következőt: %s'):format(item), type = 'success' })
+    if isUIOpen then
+        SendNUIMessage({
+            action = 'documentReady',
+            item = item
+        })
+    else
+        exports.ox_lib:notify({
+            title = 'Okmány elkészült',
+            description = ('Megkaptad: %s'):format(item),
+            type = 'success'
+        })
+    end
 end)
 
--- Receive VIN check result
+-- Receive VIN check result and forward to NUI
 RegisterNetEvent('realrpg_cityhall:vinResult', function(info)
-    -- Show information via a context menu with optional actions.
-    showVINResultMenu(info)
-end)
-
--- Display VIN search results in a context menu with optional actions.
-function showVINResultMenu(info)
-    local lines = {}
-    if info.owner then lines[#lines+1] = ('Tulajdonos: %s'):format(info.owner) end
-    if info.insured ~= nil then lines[#lines+1] = ('Biztosítás: %s'):format(info.insured and 'érvényes' or 'nincs') end
-    if info.plate then lines[#lines+1] = ('Rendszám: %s'):format(info.plate) end
-    if info.model then lines[#lines+1] = ('Típus: %s'):format(info.model) end
-    if #lines == 0 then
-        lines[1] = 'Nem található információ.'
-    end
-    local opts = {
-        {
-            title = 'Információ',
-            description = table.concat(lines, '\n'),
-            readOnly = true
-        }
-    }
-    -- Allow copy of VIN/plate if enabled in config and plate exists
-    if Config.CheckVIN and Config.CheckVIN.allowCopy and info.plate then
-        table.insert(opts, {
-            title = 'Rendszám másolása',
-            description = info.plate,
-            onSelect = function()
-                -- Send the plate in a notification so the player can copy it.
-                lib.notify({ title = 'Rendszám', description = ('%s másolva a vágólapra (chat)'):format(info.plate), type = 'inform' })
-                -- Trigger a chat message with the plate for copy/paste
-                TriggerEvent('chat:addMessage', { args = { info.plate } })
-            end
+    if isUIOpen then
+        SendNUIMessage({
+            action = 'vinResult',
+            info = info
         })
-    end
-    -- Allow issuing a ticket if player has fine job; opens fine menu with prefilled info
-    if hasJob(Config.Fines.FineJobs) and info.plate then
-        table.insert(opts, {
-            title = 'Bírság kiállítása',
-            description = 'Új bírság kiállítása ennek a járműnek',
-            onSelect = function()
-                -- Open fine dialog with plate pre-filled in description
-                local dialog = lib.inputDialog('Bírság kiállítása', {
-                    { type = 'number', label = 'Cél játékos ID', required = true },
-                    { type = 'input', label = 'Sértés leírása', default = ('Rendszám: %s | Típus: %s'):format(info.plate or '', info.model or 'ismeretlen'), required = true },
-                    { type = 'number', label = 'Összeg (Ft)', description = ('Minimum %d, maximum %d'):format(Config.Fines.fineRange.min, Config.Fines.fineRange.max), required = true, min = Config.Fines.fineRange.min, max = Config.Fines.fineRange.max },
-                    { type = 'number', label = 'Fizetési határidő (nap)', description = '0 = azonnal', required = true, min = 0 }
-                })
-                if dialog then
-                    TriggerServerEvent('realrpg_cityhall:issueFine', dialog[1], {
-                        description = dialog[2],
-                        amount = dialog[3],
-                        dueDays = dialog[4]
-                    })
-                end
-            end
-        })
-    end
-    opts[#opts+1] = { title = 'Bezárás', icon = 'times', onSelect = function() end }
-    lib.registerContext({ id = 'vin_result', title = 'VIN ellenőrzés', options = opts })
-    lib.showContext('vin_result')
-end
-
--- Command: /billings
--- Allows clerks to search fines and invoices by issuer or receiver name.  Only
--- players with the clerk job can execute this command.  A simple input
--- dialog prompts for a search term; the results are returned via the
--- realrpg_cityhall:billingsResult event and displayed as a notification.
-RegisterCommand('billings', function()
-    if not hasJob({ Config.ClerkJob.jobName }) then
-        lib.notify({ title = 'Billings', description = 'Nincs jogosultságod megtekinteni a számlákat.', type = 'error' })
-        return
-    end
-    local input = lib.inputDialog('Számlák és bírságok keresése', {
-        { type = 'input', label = 'Név (adó vagy címzett)', description = 'Keresési kifejezés', required = true }
-    })
-    if input then
-        TriggerServerEvent('realrpg_cityhall:searchBillings', input[1])
     end
 end)
 
--- Receive search results for billings
+-- Receive search results for billings (fallback to ox_lib notify)
 RegisterNetEvent('realrpg_cityhall:billingsResult', function(data)
     if not data then return end
     local lines = {}
@@ -373,8 +231,8 @@ RegisterNetEvent('realrpg_cityhall:billingsResult', function(data)
         table.insert(lines, '--- Bírságok ---')
         for _, row in ipairs(data.fines) do
             local due = row.due_at and os.date('%Y.%m.%d', row.due_at) or 'N/A'
-            table.insert(lines, ('ID: %s | Összeg: %d Ft | Leírás: %s | Kibocsátó: %s | Címzett: %s | Határidő: %s'):format(
-                row.id or 'N/A', row.amount or 0, row.description or '', row.issuer_name or 'ismeretlen', row.target_name or 'ismeretlen', due
+            table.insert(lines, ('ID: %s | %d Ft | %s | %s'):format(
+                row.id or 'N/A', row.amount or 0, row.description or '', due
             ))
         end
     end
@@ -382,14 +240,37 @@ RegisterNetEvent('realrpg_cityhall:billingsResult', function(data)
         table.insert(lines, '--- Számlák ---')
         for _, row in ipairs(data.invoices) do
             local total = (row.quantity or 0) * (row.unit_price or 0)
-            local due = row.due_at and os.date('%Y.%m.%d', row.due_at) or 'N/A'
-            table.insert(lines, ('ID: %s | Összeg: %d Ft | Leírás: %s | Kibocsátó: %s | Címzett: %s | Határidő: %s'):format(
-                row.id or 'N/A', total, row.description or '', row.issuer_name or 'ismeretlen', row.target_name or 'ismeretlen', due
+            table.insert(lines, ('ID: %s | %d Ft | %s'):format(
+                row.id or 'N/A', total, row.description or ''
             ))
         end
     end
     if #lines == 0 then
         lines[1] = 'Nincs találat.'
     end
-    lib.notify({ title = 'Billings eredmények', description = table.concat(lines, '\n'), type = 'inform', duration = 15000 })
+    exports.ox_lib:notify({
+        title = 'Billings',
+        description = table.concat(lines, '\n'),
+        type = 'inform',
+        duration = 15000
+    })
+end)
+
+-- Command: /billings
+RegisterCommand('billings', function()
+    if not hasJob({ Config.ClerkJob.jobName }) then
+        exports.ox_lib:notify({
+            title = 'Billings',
+            description = 'Nincs jogosultságod.',
+            type = 'error'
+        })
+        return
+    end
+    -- Use ox_lib input for billings search (simple popup, not full NUI)
+    local input = exports.ox_lib:inputDialog('Számlák keresése', {
+        { type = 'input', label = 'Név (kibocsátó vagy címzett)', required = true }
+    })
+    if input then
+        TriggerServerEvent('realrpg_cityhall:searchBillings', input[1])
+    end
 end)
