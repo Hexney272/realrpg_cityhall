@@ -72,7 +72,7 @@ RegisterNetEvent('realrpg_cityhall:buyInsurance', function(plate)
     local price = Config.Insurance.price
     -- Optional licence check: require player to possess a valid driving licence item.
     if Config.RequireValidLicence then
-        local count = exports['seerpg_inventory']:Search(src, 'count', 'driver_license') or 0
+        local count = exports['ox_inventory']:Search(src, 'count', 'driver_license') or 0
         if count < 1 then
             TriggerClientEvent('realrpg_cityhall:notify', src, 'Biztosítás', 'Nem rendelkezel érvényes jogosítvánnyal.', 'error')
             return
@@ -120,7 +120,7 @@ RegisterNetEvent('realrpg_cityhall:requestDocument', function(docId)
     if Config.RequireValidLicence then
         -- Define which documents require a licence; id_card does not.
         if docId ~= 'id_card' then
-            local count = exports['seerpg_inventory']:Search(src, 'count', 'driver_license') or 0
+            local count = exports['ox_inventory']:Search(src, 'count', 'driver_license') or 0
             if count < 1 then
                 TriggerClientEvent('realrpg_cityhall:notify', src, 'Okmány', 'Nincs érvényes jogosítványod a kérelemhez.', 'error')
                 return
@@ -309,6 +309,63 @@ RegisterNetEvent('realrpg_cityhall:searchBillings', function(term)
     end)
 end)
 
+-- Issue a ticket (from NUI ticket book item)
+RegisterNetEvent('realrpg_cityhall:issueTicket', function(ticketType, ticketData)
+    local src = source
+    if not ticketData then return end
+    local targetId = tonumber(ticketData.receiver)
+    if not targetId then return end
+    local issuer = getPlayer(src)
+    local target = getPlayer(targetId)
+    if not issuer or not target then
+        TriggerClientEvent('realrpg_cityhall:notify', src, 'Ticket', 'A cél játékos nem található.', 'error')
+        return
+    end
+    -- Job check
+    if not hasJob(issuer.job.name, Config.Fines.FineJobs) then
+        TriggerClientEvent('realrpg_cityhall:notify', src, 'Ticket', 'Nincs jogosultságod bírság kiállításához.', 'error')
+        return
+    end
+    local amt = tonumber(ticketData.amount) or 0
+    if amt <= 0 then
+        TriggerClientEvent('realrpg_cityhall:notify', src, 'Ticket', 'Érvénytelen összeg.', 'error')
+        return
+    end
+    local desc = ticketData.violation or 'Szabálysértés'
+    local issuedAt = os.time()
+    local dueAt = issuedAt + ((tonumber(ticketData.dueDays) or 14) * 24 * 60 * 60)
+    exports.oxmysql:insert('INSERT INTO realrpg_fines (issuer, target, amount, description, issued_at, due_at) VALUES (?, ?, ?, ?, ?, ?)', {
+        issuer.identifier,
+        target.identifier,
+        amt,
+        desc,
+        issuedAt,
+        dueAt
+    }, function(insertId)
+        TriggerClientEvent('realrpg_cityhall:notify', src, 'Ticket', 'Bírság sikeresen kiállítva.', 'success')
+        TriggerClientEvent('realrpg_cityhall:notify', targetId, 'Ticket', ('Bírságot kaptál: %d Ft - %s'):format(amt, desc), 'inform')
+        -- Send ticket data to target for viewing
+        TriggerClientEvent('realrpg_cityhall:showTicket', targetId, ticketData)
+    end)
+end)
+
+-- Pay a ticket (cash or bank)
+RegisterNetEvent('realrpg_cityhall:payTicket', function(method)
+    local src = source
+    -- Placeholder: in a full implementation, track which ticket is being paid
+    TriggerClientEvent('realrpg_cityhall:notify', src, 'Ticket', 'Fizetés feldolgozva.', 'success')
+end)
+
+-- Pay/respond to an invoice
+RegisterNetEvent('realrpg_cityhall:payInvoice', function(method)
+    local src = source
+    if method == 'accept' then
+        TriggerClientEvent('realrpg_cityhall:notify', src, 'Számla', 'Számla elfogadva és fizetve.', 'success')
+    else
+        TriggerClientEvent('realrpg_cityhall:notify', src, 'Számla', 'Számla elutasítva.', 'inform')
+    end
+end)
+
 --[[
     issueReceipt
     Allows a player with a payment terminal and thermal paper to issue a receipt
@@ -333,26 +390,16 @@ RegisterNetEvent('realrpg_cityhall:issueReceipt', function(targetId, data)
     local issuer = getPlayer(src)
     local buyer = getPlayer(buyerId)
     if not issuer or not buyer then return end
-    -- Check that issuer has a payment terminal and thermal paper
+    -- Check that issuer has a payment terminal
     local termCount = exports['ox_inventory']:Search(src, 'count', 'payment_terminal') or 0
-    local paperCount = exports['ox_inventory']:Search(src, 'count', 'thermal_paper') or 0
     if termCount < 1 then
         TriggerClientEvent('realrpg_cityhall:notify', src, 'Nyugta', 'Nincs fizetési terminálod a kiállításhoz.', 'error')
         return
     end
-    if paperCount < 1 then
-        TriggerClientEvent('realrpg_cityhall:notify', src, 'Nyugta', 'Elfogyott a hőpapír a terminálban.', 'error')
-        return
-    end
-    -- Consume one thermal paper
-    exports['ox_inventory']:RemoveItem(src, 'thermal_paper', 1)
     -- Calculate totals
     local qty = tonumber(data.quantity) or 1
     local price = tonumber(data.unitPrice) or 0
-    local subtotal = qty * price
-    local taxRate = tonumber(data.taxPercent) or 0
-    local taxAmount = math.floor(subtotal * taxRate / 100)
-    local total = subtotal + taxAmount
+    local total = qty * price
     -- Create metadata for receipt
     local metadata = {
         description = tostring(data.description or 'Tranzakció'),

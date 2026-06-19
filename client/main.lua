@@ -147,8 +147,7 @@ RegisterNUICallback('issueReceipt', function(data, cb)
         TriggerServerEvent('realrpg_cityhall:issueReceipt', data.targetId, {
             description = data.description,
             quantity = data.quantity or 1,
-            unitPrice = data.unitPrice,
-            taxPercent = data.taxPercent or 0
+            unitPrice = data.unitPrice
         })
     end
     cb('ok')
@@ -167,6 +166,18 @@ RegisterNUICallback('payTicket', function(data, cb)
     if data and data.method then
         TriggerServerEvent('realrpg_cityhall:payTicket', data.method)
     end
+    cb('ok')
+end)
+
+-- Close ticket UI (no server action needed, just release focus)
+RegisterNUICallback('closeTicket', function(_, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+end)
+
+-- Close ticket viewer
+RegisterNUICallback('closeTicketViewer', function(_, cb)
+    SetNuiFocus(false, false)
     cb('ok')
 end)
 
@@ -189,6 +200,18 @@ RegisterNUICallback('payInvoice', function(data, cb)
     if data and data.method then
         TriggerServerEvent('realrpg_cityhall:payInvoice', data.method)
     end
+    cb('ok')
+end)
+
+-- Close invoice UI
+RegisterNUICallback('closeInvoice', function(_, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+end)
+
+-- Close invoice viewer
+RegisterNUICallback('closeInvoiceViewer', function(_, cb)
+    SetNuiFocus(false, false)
     cb('ok')
 end)
 
@@ -261,6 +284,12 @@ end)
 -- Server tells us printing is done -> forward to NUI
 RegisterNetEvent('realrpg_cityhall:printDone', function()
     SendNUIMessage({ action = 'printDone' })
+end)
+
+-- Server sends us a ticket to view
+RegisterNetEvent('realrpg_cityhall:showTicket', function(ticketData)
+    SendNUIMessage({ action = 'openTicketViewer', ticket = ticketData })
+    SetNuiFocus(true, true)
 end)
 
 -- ═══════════════════════════════════════════════════════════════════
