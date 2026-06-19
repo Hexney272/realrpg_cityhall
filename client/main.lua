@@ -147,10 +147,115 @@ RegisterNUICallback('issueReceipt', function(data, cb)
         TriggerServerEvent('realrpg_cityhall:issueReceipt', data.targetId, {
             description = data.description,
             quantity = data.quantity or 1,
-            unitPrice = data.unitPrice
+            unitPrice = data.unitPrice,
+            taxPercent = data.taxPercent or 0
         })
     end
     cb('ok')
+end)
+
+-- Handle issuing of tickets from NUI
+RegisterNUICallback('issueTicket', function(data, cb)
+    if data and data.type and data.ticketData then
+        TriggerServerEvent('realrpg_cityhall:issueTicket', data.type, data.ticketData)
+    end
+    cb('ok')
+end)
+
+-- Handle paying tickets from NUI
+RegisterNUICallback('payTicket', function(data, cb)
+    if data and data.method then
+        TriggerServerEvent('realrpg_cityhall:payTicket', data.method)
+    end
+    cb('ok')
+end)
+
+-- Handle issuing of invoices from NUI
+RegisterNUICallback('issueInvoice', function(data, cb)
+    if data and data.buyer then
+        -- data contains description, quantity, unitPrice, taxPercent
+        TriggerServerEvent('realrpg_cityhall:issueInvoice', data.buyer, {
+            description = data.description,
+            quantity = data.quantity,
+            unitPrice = data.unitPrice,
+            taxPercent = data.taxPercent or 0
+        })
+    end
+    cb('ok')
+end)
+
+-- Handle paying invoices from NUI
+RegisterNUICallback('payInvoice', function(data, cb)
+    if data and data.method then
+        TriggerServerEvent('realrpg_cityhall:payInvoice', data.method)
+    end
+    cb('ok')
+end)
+
+-- Start note-taking animation when opening ticket UI
+RegisterNUICallback('startTicketAnimation', function(data, cb)
+    local ped = PlayerPedId()
+    -- Use a more realistic note‑taking animation.  The
+    -- CODE_HUMAN_MEDIC_TIME_OF_DEATH scenario animates the
+    -- player with a clipboard and pen similar to writing a citation.
+    -- The final boolean controls whether the animation includes
+    -- entering/leaving transitions (true) or plays instantly (false).
+    TaskStartScenarioInPlace(ped, 'CODE_HUMAN_MEDIC_TIME_OF_DEATH', 0, true)
+    cb('ok')
+end)
+
+-- Stop note-taking animation
+RegisterNUICallback('stopTicketAnimation', function(data, cb)
+    local ped = PlayerPedId()
+    ClearPedTasks(ped)
+    cb('ok')
+end)
+
+-- Start signing animation when signing invoice
+RegisterNUICallback('startSigning', function(data, cb)
+    local ped = PlayerPedId()
+    -- Play a signing animation similar to writing on paper.  We use the
+    -- same scenario as for the ticket to give the impression of signing.
+    TaskStartScenarioInPlace(ped, 'CODE_HUMAN_MEDIC_TIME_OF_DEATH', 0, true)
+    cb('ok')
+end)
+
+-- Stop signing animation
+RegisterNUICallback('stopSigning', function(data, cb)
+    local ped = PlayerPedId()
+    ClearPedTasks(ped)
+    cb('ok')
+end)
+
+-- ==================================================================
+-- ITEM USE EXPORTS
+-- These exports allow inventory systems to open the Ticket and Invoice
+-- interfaces directly from items.  When a police officer uses a
+-- ticket book item, the corresponding UI opens and plays the
+-- writing animation.  Similarly, an invoice item opens the invoice
+-- creation UI.
+-- ==================================================================
+
+-- Ticket item: opens regular ticket creation UI
+exports('useTicket', function(data)
+    -- data.metadata may contain preset plate/model values
+    local meta = data and data.metadata or {}
+    SendNUIMessage({ action = 'openTicket', type = 'ticket', plate = meta.plate or '', model = meta.model or '' })
+    SetNuiFocus(true, true)
+end)
+
+-- Traffic ticket item: opens traffic ticket UI (with licence fields)
+exports('useTrafficTicket', function(data)
+    local meta = data and data.metadata or {}
+    SendNUIMessage({ action = 'openTicket', type = 'traffic-ticket', plate = meta.plate or '', model = meta.model or '' })
+    SetNuiFocus(true, true)
+end)
+
+-- Invoice item: opens invoice creation UI
+exports('useInvoice', function(data)
+    local meta = data and data.metadata or {}
+    SendNUIMessage({ action = 'openInvoice', invoiceData = meta })
+    SetNuiFocus(true, true)
 end)
 
 -- Server tells us printing is done -> forward to NUI
@@ -184,6 +289,8 @@ end)
 
 -- Payment terminal item: open terminal NUI when used
 exports('useTerminal', function(data)
+    -- A szerver oldal ellenőrzi a hőpapírt a receipt kiállításakor.
+    -- Itt csak megnyitjuk a terminál NUI-t.
     openTerminalUI()
 end)
 

@@ -124,6 +124,7 @@
                             <div class="pos-r-divider"></div>
                             <div class="pos-r-row"><span>Tétel:</span><span id="print-desc">-</span></div>
                             <div class="pos-r-row"><span>Menny.:</span><span id="print-qty">-</span></div>
+                            <div class="pos-r-row"><span>Adó:</span><span id="print-tax">-</span></div>
                             <div class="pos-r-divider"></div>
                             <div class="pos-r-total"><span>Összesen:</span><span id="print-total">0 Ft</span></div>
                             <div class="pos-r-footer">RealRPG</div>
@@ -145,6 +146,7 @@
                                     <div class="pos-field half"><label>Mennyiség</label><input type="number" id="t-quantity" value="1" min="1" /></div>
                                     <div class="pos-field half"><label>Egységár (Ft)</label><input type="number" id="t-price" placeholder="Ár" min="1" /></div>
                                 </div>
+                                <div class="pos-field"><label>Adó (%)</label><input type="number" id="t-tax" value="0" min="0" max="100" /></div>
                                 <button class="pos-print-btn" id="btn-terminal-print"><i class="fas fa-print"></i> Nyomtatás</button>
                             </div>
                         </div>
@@ -177,6 +179,230 @@
 
     <!-- Toast container -->
     <div id="toast-container"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TICKET CREATION (Officer UI)
+    ════════════════════════════════════════════════════════════ -->
+    <div id="ticket-app" class="screen hidden">
+        <div class="ticket-card">
+            <div class="ticket-header">
+                <h3 id="ticket-title">Ticket</h3>
+                <!-- ticket type toggles: allow switching between regular ticket and traffic ticket -->
+                <div class="ticket-toggle">
+                    <button id="ticket-type-ticket" class="toggle-btn active">Ticket</button>
+                    <button id="ticket-type-traffic" class="toggle-btn">Traffic</button>
+                </div>
+                <button class="ticket-close" id="ticket-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="ticket-body">
+                <!-- First row: date, time, receiver -->
+                <div class="ticket-row">
+                    <div class="ticket-field">
+                        <label>Dátum</label>
+                        <input type="date" id="ticket-date" />
+                    </div>
+                    <div class="ticket-field">
+                        <label>Időpont</label>
+                        <input type="time" id="ticket-time" />
+                    </div>
+                    <div class="ticket-field">
+                        <label>Címzett ID</label>
+                        <input type="number" id="ticket-receiver" placeholder="Játékos ID" min="1" />
+                    </div>
+                </div>
+                <!-- Traffic-specific row: licence plate, make, model, VIN (shown only for traffic tickets) -->
+                <div class="ticket-row traffic-only" id="traffic-veh-info">
+                    <div class="ticket-field">
+                        <label>Rendszám</label>
+                        <input type="text" id="traffic-license" placeholder="NNK 1234" />
+                    </div>
+                    <div class="ticket-field">
+                        <label>Márka</label>
+                        <input type="text" id="traffic-make" placeholder="Jármű márka" />
+                    </div>
+                    <div class="ticket-field">
+                        <label>Modell</label>
+                        <input type="text" id="traffic-model" placeholder="Jármű modell" />
+                    </div>
+                    <div class="ticket-field">
+                        <label>VIN</label>
+                        <input type="text" id="traffic-vin" placeholder="VIN szám" />
+                    </div>
+                </div>
+                <!-- Common row: location -->
+                <div class="ticket-row">
+                    <div class="ticket-field full">
+                        <label>Helyszín</label>
+                        <input type="text" id="ticket-location" placeholder="Helyszín" />
+                    </div>
+                </div>
+                <!-- Common row: violation -->
+                <div class="ticket-row">
+                    <div class="ticket-field full">
+                        <label>Sértés</label>
+                        <input type="text" id="ticket-violation" placeholder="Szabálysértés" />
+                    </div>
+                </div>
+                <!-- Common row: fine and due date -->
+                <div class="ticket-row">
+                    <div class="ticket-field">
+                        <label>Bírság (Ft)</label>
+                        <input type="number" id="ticket-amount" placeholder="Összeg" min="0" />
+                    </div>
+                    <div class="ticket-field">
+                        <label>Határidő (nap)</label>
+                        <input type="number" id="ticket-due" placeholder="14" min="0" />
+                    </div>
+                </div>
+                <!-- Traffic fields: licence type and revocation -->
+                <div class="ticket-row traffic-only" id="traffic-fields">
+                    <div class="ticket-field">
+                        <label>Jogosítvány típusa</label>
+                        <input type="text" id="ticket-lictype" placeholder="B, C, stb." />
+                    </div>
+                    <div class="ticket-field">
+                        <label>Vezetői engedély visszavonása</label>
+                        <select id="ticket-revoke">
+                            <option value="no">Nem</option>
+                            <option value="yes">Igen</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Traffic fields: suspension time and penalty points -->
+                <div class="ticket-row traffic-only" id="suspension-row">
+                    <div class="ticket-field">
+                        <label>Felfüggesztés (nap)</label>
+                        <input type="number" id="ticket-suspension" placeholder="0" min="0" />
+                    </div>
+                    <div class="ticket-field">
+                        <label>Büntetőpontok</label>
+                        <select id="ticket-points">
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Traffic fields: penalty points count -->
+                <div class="ticket-row traffic-only" id="penalty-row">
+                    <div class="ticket-field">
+                        <label>Pontok száma</label>
+                        <input type="number" id="ticket-points-count" placeholder="" min="0" />
+                    </div>
+                </div>
+                <!-- Comments row -->
+                <div class="ticket-row">
+                    <div class="ticket-field full">
+                        <label>Megjegyzés</label>
+                        <textarea id="ticket-comment" placeholder="Megjegyzés" rows="2"></textarea>
+                    </div>
+                </div>
+                <!-- Acknowledgement -->
+                <div class="ticket-row">
+                    <div class="ticket-ack">
+                        Kijelentem, hogy a fenti információk a valóságnak megfelelnek, és tisztában vagyok vele, hogy a hamis állítások büntetőjogi következményekkel járhatnak.
+                    </div>
+                </div>
+            </div>
+            <div class="ticket-footer">
+                <button class="ticket-submit" id="ticket-submit">Jegy kiállítása</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TICKET VIEWER (Player)
+    ════════════════════════════════════════════════════════════ -->
+    <div id="ticket-viewer" class="screen hidden">
+        <div class="ticket-card view">
+            <div class="ticket-header view">
+                <h3 id="tv-title">Ticket</h3>
+                <button class="ticket-close" id="tv-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="ticket-body view" id="tv-body">
+                <!-- Filled dynamically -->
+            </div>
+            <div class="ticket-footer view">
+                <button class="ticket-pay" id="tv-pay-cash">Fizetés készpénzzel</button>
+                <button class="ticket-pay" id="tv-pay-bank">Fizetés bankkártyával</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         INVOICE CREATION (Officer UI)
+    ════════════════════════════════════════════════════════════ -->
+    <div id="invoice-app" class="screen hidden">
+        <div class="invoice-card">
+            <div class="invoice-header">
+                <h3>Számla</h3>
+                <button class="invoice-close" id="invoice-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="invoice-body">
+                <div class="invoice-row">
+                    <div class="invoice-field">
+                        <label>Leírás</label>
+                        <input type="text" id="inv-description" placeholder="Termék / szolgáltatás" />
+                    </div>
+                </div>
+                <div class="invoice-row">
+                    <div class="invoice-field half">
+                        <label>Mennyiség</label>
+                        <input type="number" id="inv-quantity" value="1" min="1" />
+                    </div>
+                    <div class="invoice-field half">
+                        <label>Egységár (Ft)</label>
+                        <input type="number" id="inv-unit" placeholder="Ár" min="0" />
+                    </div>
+                </div>
+                <div class="invoice-row">
+                    <div class="invoice-field">
+                        <label>Adó (%)</label>
+                        <input type="number" id="inv-tax" value="0" min="0" max="100" />
+                    </div>
+                </div>
+                <div class="invoice-row">
+                    <div class="invoice-field full">
+                        <label>Vevő ID</label>
+                        <input type="number" id="inv-buyer" placeholder="Játékos ID" min="1" />
+                    </div>
+                </div>
+                <div class="invoice-row">
+                    <div class="invoice-signature" id="invoice-signature">
+                        <span>Kattints az aláíráshoz</span>
+                    </div>
+                </div>
+            </div>
+            <div class="invoice-footer">
+                <button class="invoice-submit" id="invoice-submit">Számla kiállítása</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         INVOICE VIEWER (Player)
+    ════════════════════════════════════════════════════════════ -->
+    <div id="invoice-viewer" class="screen hidden">
+        <div class="invoice-card view">
+            <div class="invoice-header view">
+                <h3>Számla</h3>
+                <button class="invoice-close" id="iv-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="invoice-body view" id="iv-body">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="invoice-footer view">
+                <button class="invoice-pay" id="iv-accept">Elfogadom és fizetek</button>
+                <button class="invoice-pay" id="iv-reject">Elutasítom</button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>

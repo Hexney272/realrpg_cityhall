@@ -10,7 +10,7 @@ Config = {}
 -- Location of the city hall marker and interaction.  When a player stands
 -- within `markerDistance` metres they will see a prompt to open the menu.
 Config.CityHall = {
-    coords = vector3(-548.99, -203.21, 37.22), -- Example: Vespucci City Hall entrance
+    coords = vector3(-1084.56, -255.39, 37.76), -- Example: Vespucci City Hall entrance
     heading = 65.0,
     markerDistance = 15.0,
     interactDistance = 2.5,
