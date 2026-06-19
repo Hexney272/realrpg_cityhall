@@ -36,15 +36,5 @@ server_scripts {
     'server/main.lua'
 }
 
--- Only include the basic HTML fallback.  The city hall menus are implemented
--- using ox_lib context menus; the HTML page is unused unless you choose to
--- implement your own NUI.  React and Node dependencies have been removed.
-files {
-    'html/index.html',
-    'html/style.css',
-    'html/app.js'
-}
-
--- Set the default UI page to the basic HTML placeholder.  This ensures the
--- resource does not try to load a React NUI when no server is available.
-ui_page 'html/index.html'
+-- The city hall menus are implemented using ox_lib context menus; no custom
+-- NUI is used.  The HTML files are kept for reference only but not loaded.
