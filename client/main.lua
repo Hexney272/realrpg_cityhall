@@ -147,8 +147,7 @@ RegisterNUICallback('issueReceipt', function(data, cb)
         TriggerServerEvent('realrpg_cityhall:issueReceipt', data.targetId, {
             description = data.description,
             quantity = data.quantity or 1,
-            unitPrice = data.unitPrice,
-            taxPercent = data.taxPercent or 0
+            unitPrice = data.unitPrice
         })
     end
     cb('ok')
@@ -185,8 +184,6 @@ end)
 
 -- Payment terminal item: open terminal NUI when used
 exports('useTerminal', function(data)
-    -- A szerver oldal ellenőrzi a hőpapírt a receipt kiállításakor.
-    -- Itt csak megnyitjuk a terminál NUI-t.
     openTerminalUI()
 end)
 

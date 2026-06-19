@@ -117,7 +117,6 @@
         document.getElementById('t-description').value='';
         document.getElementById('t-quantity').value='1';
         document.getElementById('t-price').value='';
-        document.getElementById('t-tax').value='0';
         terminalApp.classList.remove('hidden');
     }
 
@@ -129,18 +128,14 @@
         var desc = document.getElementById('t-description').value.trim();
         var qty = parseInt(document.getElementById('t-quantity').value)||1;
         var price = parseInt(document.getElementById('t-price').value);
-        var tax = parseInt(document.getElementById('t-tax').value)||0;
         if(!buyerId||!desc||!price){ showToast('Minden mező kitöltése kötelező!','error'); return; }
 
         // Calculate total for paper display
-        var subtotal = qty * price;
-        var taxAmt = Math.floor(subtotal * tax / 100);
-        var total = subtotal + taxAmt;
+        var total = qty * price;
 
         // Fill print paper with data
         document.getElementById('print-desc').textContent = desc;
         document.getElementById('print-qty').textContent = qty + ' db';
-        document.getElementById('print-tax').textContent = tax + '%';
         document.getElementById('print-total').textContent = fmt(total) + ' Ft';
 
         // Switch to printing view
@@ -163,7 +158,7 @@
         }, 800);
 
         // Send to server
-        post('issueReceipt',{ targetId:buyerId, description:desc, quantity:qty, unitPrice:price, taxPercent:tax });
+        post('issueReceipt',{ targetId:buyerId, description:desc, quantity:qty, unitPrice:price });
     });
 
     function onPrintDone(){

@@ -333,26 +333,16 @@ RegisterNetEvent('realrpg_cityhall:issueReceipt', function(targetId, data)
     local issuer = getPlayer(src)
     local buyer = getPlayer(buyerId)
     if not issuer or not buyer then return end
-    -- Check that issuer has a payment terminal and thermal paper
+    -- Check that issuer has a payment terminal
     local termCount = exports['ox_inventory']:Search(src, 'count', 'payment_terminal') or 0
-    local paperCount = exports['ox_inventory']:Search(src, 'count', 'thermal_paper') or 0
     if termCount < 1 then
         TriggerClientEvent('realrpg_cityhall:notify', src, 'Nyugta', 'Nincs fizetési terminálod a kiállításhoz.', 'error')
         return
     end
-    if paperCount < 1 then
-        TriggerClientEvent('realrpg_cityhall:notify', src, 'Nyugta', 'Elfogyott a hőpapír a terminálban.', 'error')
-        return
-    end
-    -- Consume one thermal paper
-    exports['ox_inventory']:RemoveItem(src, 'thermal_paper', 1)
     -- Calculate totals
     local qty = tonumber(data.quantity) or 1
     local price = tonumber(data.unitPrice) or 0
-    local subtotal = qty * price
-    local taxRate = tonumber(data.taxPercent) or 0
-    local taxAmount = math.floor(subtotal * taxRate / 100)
-    local total = subtotal + taxAmount
+    local total = qty * price
     -- Create metadata for receipt
     local metadata = {
         description = tostring(data.description or 'Tranzakció'),
