@@ -168,14 +168,14 @@ CreateThread(function()
     end
 end)
 
--- Helper to give document item to player via seerpg_inventory
+-- Helper to give document item to player via ox_inventory bridge
 function giveDocument(src, item)
     local metadata = {
         serial = ('%s-%04d'):format(string.upper(item:sub(1,3)), math.random(1000,9999)),
         issuedAt = os.time(),
         issuer = 'City Hall'
     }
-    exports['seerpg_inventory']:AddItem(src, item, 1, metadata)
+    exports['ox_inventory']:AddItem(src, item, 1, metadata)
 end
 
 -- Issue a fine to another player
@@ -334,8 +334,8 @@ RegisterNetEvent('realrpg_cityhall:issueReceipt', function(targetId, data)
     local buyer = getPlayer(buyerId)
     if not issuer or not buyer then return end
     -- Check that issuer has a payment terminal and thermal paper
-    local termCount = exports['seerpg_inventory']:Search(src, 'count', 'payment_terminal') or 0
-    local paperCount = exports['seerpg_inventory']:Search(src, 'count', 'thermal_paper') or 0
+    local termCount = exports['ox_inventory']:Search(src, 'count', 'payment_terminal') or 0
+    local paperCount = exports['ox_inventory']:Search(src, 'count', 'thermal_paper') or 0
     if termCount < 1 then
         TriggerClientEvent('realrpg_cityhall:notify', src, 'Nyugta', 'Nincs fizetési terminálod a kiállításhoz.', 'error')
         return
@@ -345,7 +345,7 @@ RegisterNetEvent('realrpg_cityhall:issueReceipt', function(targetId, data)
         return
     end
     -- Consume one thermal paper
-    exports['seerpg_inventory']:RemoveItem(src, 'thermal_paper', 1)
+    exports['ox_inventory']:RemoveItem(src, 'thermal_paper', 1)
     -- Calculate totals
     local qty = tonumber(data.quantity) or 1
     local price = tonumber(data.unitPrice) or 0
@@ -362,7 +362,7 @@ RegisterNetEvent('realrpg_cityhall:issueReceipt', function(targetId, data)
         seller = issuer.getName and issuer.getName() or issuer.identifier
     }
     -- Give receipt to buyer
-    exports['seerpg_inventory']:AddItem(buyerId, 'receipt', 1, metadata)
+    exports['ox_inventory']:AddItem(buyerId, 'receipt', 1, metadata)
     TriggerClientEvent('realrpg_cityhall:printDone', src)
     TriggerClientEvent('realrpg_cityhall:notify', src, 'Nyugta', ('Nyugta sikeresen kiállítva %d Ft értékben.'):format(total), 'success')
     TriggerClientEvent('realrpg_cityhall:notify', buyerId, 'Nyugta', ('Új nyugtát kaptál: %s - %d Ft'):format(metadata.description, total), 'inform')

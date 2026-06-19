@@ -9,59 +9,30 @@
 </head>
 <body>
 
-    <!-- ═══════════════════════════════════════════════════════════════════
+    <!-- ═══════════════════════════════════════════════════════════
          VÁROSHÁZA MENÜ
-    ════════════════════════════════════════════════════════════════════ -->
+    ════════════════════════════════════════════════════════════ -->
     <div id="cityhall-app" class="screen hidden">
         <div class="ch-container">
-            <!-- Sidebar -->
             <div class="ch-sidebar">
                 <div class="ch-sidebar-header">
                     <div class="ch-logo"><i class="fas fa-landmark"></i></div>
                     <h2>Városháza</h2>
                 </div>
                 <nav class="ch-nav">
-                    <a href="#" class="ch-nav-item active" data-page="main">
-                        <i class="fas fa-home"></i>
-                        <div class="ch-nav-text">
-                            <span class="ch-nav-title">Főoldal</span>
-                        </div>
-                    </a>
-                    <a href="#" class="ch-nav-item" data-page="insurance">
-                        <i class="fas fa-shield-alt"></i>
-                        <div class="ch-nav-text">
-                            <span class="ch-nav-title">Biztosítás</span>
-                            <span class="ch-nav-desc">Kötelező biztosítás kötése...</span>
-                        </div>
-                    </a>
-                    <a href="#" class="ch-nav-item" data-page="documents">
-                        <i class="fas fa-file-alt"></i>
-                        <div class="ch-nav-text">
-                            <span class="ch-nav-title">Okmányok</span>
-                            <span class="ch-nav-desc">Okmányok igénylése...</span>
-                        </div>
-                    </a>
-                    <a href="#" class="ch-nav-item" data-page="vin" id="nav-vin">
-                        <i class="fas fa-car"></i>
-                        <div class="ch-nav-text">
-                            <span class="ch-nav-title">VIN Ellenőrzés</span>
-                            <span class="ch-nav-desc">Jármű adatok lekérdezése...</span>
-                        </div>
-                    </a>
+                    <a href="#" class="ch-nav-item active" data-page="main"><i class="fas fa-home"></i><div class="ch-nav-text"><span class="ch-nav-title">Főoldal</span></div></a>
+                    <a href="#" class="ch-nav-item" data-page="insurance"><i class="fas fa-shield-alt"></i><div class="ch-nav-text"><span class="ch-nav-title">Biztosítás</span><span class="ch-nav-desc">Kötelező biztosítás kötése...</span></div></a>
+                    <a href="#" class="ch-nav-item" data-page="documents"><i class="fas fa-file-alt"></i><div class="ch-nav-text"><span class="ch-nav-title">Okmányok</span><span class="ch-nav-desc">Okmányok igénylése...</span></div></a>
+                    <a href="#" class="ch-nav-item" data-page="vin" id="nav-vin"><i class="fas fa-car"></i><div class="ch-nav-text"><span class="ch-nav-title">VIN Ellenőrzés</span><span class="ch-nav-desc">Jármű adatok lekérdezése...</span></div></a>
                 </nav>
-                <div class="ch-sidebar-footer">
-                    <span>v1.1.0</span>
-                </div>
+                <div class="ch-sidebar-footer"><span>v1.1.0</span></div>
             </div>
-
-            <!-- Content -->
             <div class="ch-content">
                 <div class="ch-header">
                     <h1 id="ch-page-title">Üdvözlünk a Városházán</h1>
                     <button class="ch-close-btn" id="ch-close"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="ch-body">
-                    <!-- Main Page -->
                     <div class="ch-page active" id="ch-page-main">
                         <div class="ch-welcome">
                             <div class="ch-welcome-icon"><i class="fas fa-landmark"></i></div>
@@ -74,15 +45,10 @@
                             <div class="ch-stat"><div class="ch-stat-icon"><i class="fas fa-car"></i></div><div><span class="ch-stat-title">VIN Ellenőrzés</span><span class="ch-stat-desc">Jármű tulajdonos keresés</span></div></div>
                         </div>
                     </div>
-
-                    <!-- Insurance Page -->
                     <div class="ch-page" id="ch-page-insurance">
                         <div class="ch-page-intro"><h3>Kötelező biztosítás</h3><p>Kösd meg járműved kötelező biztosítását.</p></div>
                         <div class="ch-form-card">
-                            <div class="ch-form-group">
-                                <label>Rendszám</label>
-                                <input type="text" id="ins-plate" placeholder="Pl. ABC123" maxlength="8" />
-                            </div>
+                            <div class="ch-form-group"><label>Rendszám</label><input type="text" id="ins-plate" placeholder="Pl. ABC123" maxlength="8" /></div>
                             <div class="ch-form-info">
                                 <div class="ch-info-row"><span>Ár:</span><span class="gold" id="ins-price">50 000 Ft</span></div>
                                 <div class="ch-info-row"><span>Érvényesség:</span><span id="ins-duration">30 nap</span></div>
@@ -90,36 +56,26 @@
                             <button class="ch-btn" id="btn-buy-insurance"><i class="fas fa-check"></i> Biztosítás megkötése</button>
                         </div>
                     </div>
-
-                    <!-- Documents Page -->
                     <div class="ch-page" id="ch-page-documents">
                         <div class="ch-page-intro"><h3>Okmányok</h3><p>Válaszd ki az igényelni kívánt okmányt.</p></div>
                         <div class="ch-docs-grid" id="ch-docs-grid"></div>
                     </div>
-
-                    <!-- VIN Page -->
                     <div class="ch-page" id="ch-page-vin">
                         <div class="ch-page-intro"><h3>VIN Ellenőrzés</h3><p>Add meg a rendszámot az adatok lekérdezéséhez.</p></div>
                         <div class="ch-form-card">
-                            <div class="ch-form-group">
-                                <label>Rendszám / VIN</label>
-                                <input type="text" id="vin-query" placeholder="Rendszám vagy VIN szám" />
-                            </div>
+                            <div class="ch-form-group"><label>Rendszám / VIN</label><input type="text" id="vin-query" placeholder="Rendszám vagy VIN szám" /></div>
                             <button class="ch-btn" id="btn-vin-check"><i class="fas fa-search"></i> Lekérdezés</button>
                         </div>
-                        <div class="ch-vin-result hidden" id="vin-result">
-                            <h4>Eredmény</h4>
-                            <div class="ch-result-grid" id="vin-result-grid"></div>
-                        </div>
+                        <div class="ch-vin-result hidden" id="vin-result"><h4>Eredmény</h4><div class="ch-result-grid" id="vin-result-grid"></div></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-         NYUGTA MEGTEKINTŐ (Item használatakor megnyílik)
-    ════════════════════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════════
+         NYUGTA MEGTEKINTŐ
+    ════════════════════════════════════════════════════════════ -->
     <div id="receipt-viewer" class="screen hidden">
         <div class="receipt-paper">
             <div class="receipt-watermark"></div>
@@ -149,89 +105,75 @@
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-         FIZETÉSI TERMINÁL NUI (payment_terminal item használatakor)
-    ════════════════════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════════
+         FIZETÉSI TERMINÁL (Realisztikus POS kinézet)
+    ════════════════════════════════════════════════════════════ -->
     <div id="terminal-app" class="screen hidden">
-        <div class="terminal-container">
-            <!-- Terminál eszköz 3D-s -->
-            <div class="terminal-device">
-                <div class="terminal-top">
-                    <div class="terminal-screen">
-                        <!-- FORM nézet -->
-                        <div class="terminal-view active" id="terminal-form-view">
-                            <div class="terminal-screen-header">
-                                <i class="fas fa-credit-card"></i>
-                                <span>Fizetési terminál</span>
-                            </div>
-                            <div class="terminal-form">
-                                <div class="t-form-group">
-                                    <label>Vásárló ID</label>
-                                    <input type="number" id="t-buyer-id" placeholder="Játékos ID" min="1" />
-                                </div>
-                                <div class="t-form-group">
-                                    <label>Tétel leírása</label>
-                                    <input type="text" id="t-description" placeholder="Termék / szolgáltatás" />
-                                </div>
-                                <div class="t-form-row">
-                                    <div class="t-form-group half">
-                                        <label>Mennyiség</label>
-                                        <input type="number" id="t-quantity" value="1" min="1" />
-                                    </div>
-                                    <div class="t-form-group half">
-                                        <label>Egységár</label>
-                                        <input type="number" id="t-price" placeholder="Ft" min="1" />
-                                    </div>
-                                </div>
-                                <div class="t-form-group">
-                                    <label>Adó (%)</label>
-                                    <input type="number" id="t-tax" value="0" min="0" max="100" />
-                                </div>
-                                <button class="terminal-print-btn" id="btn-terminal-print">
-                                    <i class="fas fa-print"></i> Nyomtatás
-                                </button>
-                            </div>
-                        </div>
-                        <!-- NYOMTATÁS animáció nézet -->
-                        <div class="terminal-view" id="terminal-print-view">
-                            <div class="terminal-printing">
-                                <div class="printing-icon">
-                                    <i class="fas fa-print"></i>
-                                </div>
-                                <p class="printing-text">Nyomtatás folyamatban...</p>
-                                <div class="printing-progress">
-                                    <div class="printing-progress-bar" id="print-progress-bar"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- KÉSZ nézet -->
-                        <div class="terminal-view" id="terminal-done-view">
-                            <div class="terminal-done">
-                                <div class="done-icon"><i class="fas fa-check-circle"></i></div>
-                                <p>Nyugta kinyomtatva!</p>
-                                <p class="done-sub">A vásárló megkapta a nyugtát.</p>
-                            </div>
+        <div class="terminal-wrapper">
+            <div class="pos-device">
+                <!-- Felső contactless rész (arany) -->
+                <div class="pos-top-section">
+                    <div class="pos-nfc-icon"><i class="fas fa-wifi"></i></div>
+                    <div class="pos-brand-badge">RealRPG</div>
+                </div>
+                <!-- Papír kijövetel nyílás -->
+                <div class="pos-paper-slot">
+                    <div class="pos-paper-output hidden" id="terminal-paper">
+                        <div class="pos-receipt-content" id="pos-receipt-content">
+                            <div class="pos-r-header">NYUGTA</div>
+                            <div class="pos-r-divider"></div>
+                            <div class="pos-r-row"><span>Tétel:</span><span id="print-desc">-</span></div>
+                            <div class="pos-r-row"><span>Menny.:</span><span id="print-qty">-</span></div>
+                            <div class="pos-r-row"><span>Adó:</span><span id="print-tax">-</span></div>
+                            <div class="pos-r-divider"></div>
+                            <div class="pos-r-total"><span>Összesen:</span><span id="print-total">0 Ft</span></div>
+                            <div class="pos-r-footer">RealRPG</div>
                         </div>
                     </div>
                 </div>
-                <!-- Papír kijövő rész (3D animáció) -->
-                <div class="terminal-paper-slot">
-                    <div class="terminal-paper-output hidden" id="terminal-paper">
-                        <div class="mini-receipt">
-                            <div class="mini-receipt-line"></div>
-                            <div class="mini-receipt-line short"></div>
-                            <div class="mini-receipt-line"></div>
-                            <div class="mini-receipt-line medium"></div>
-                            <div class="mini-receipt-line short"></div>
+                <!-- Képernyő -->
+                <div class="pos-screen-frame">
+                    <div class="pos-screen" id="pos-screen">
+                        <!-- FORM nézet -->
+                        <div class="pos-view active" id="terminal-form-view">
+                            <div class="pos-screen-header">
+                                <i class="fas fa-credit-card"></i> Fizetési terminál
+                            </div>
+                            <div class="pos-form">
+                                <div class="pos-field"><label>Vásárló ID</label><input type="number" id="t-buyer-id" placeholder="Játékos ID" min="1" /></div>
+                                <div class="pos-field"><label>Tétel leírása</label><input type="text" id="t-description" placeholder="Termék / szolgáltatás" /></div>
+                                <div class="pos-field-row">
+                                    <div class="pos-field half"><label>Mennyiség</label><input type="number" id="t-quantity" value="1" min="1" /></div>
+                                    <div class="pos-field half"><label>Egységár (Ft)</label><input type="number" id="t-price" placeholder="Ár" min="1" /></div>
+                                </div>
+                                <div class="pos-field"><label>Adó (%)</label><input type="number" id="t-tax" value="0" min="0" max="100" /></div>
+                                <button class="pos-print-btn" id="btn-terminal-print"><i class="fas fa-print"></i> Nyomtatás</button>
+                            </div>
+                        </div>
+                        <!-- Nyomtatás nézet -->
+                        <div class="pos-view" id="terminal-print-view">
+                            <div class="pos-printing">
+                                <div class="pos-print-icon"><i class="fas fa-print"></i></div>
+                                <p class="pos-print-text">Nyomtatás folyamatban...</p>
+                                <div class="pos-progress"><div class="pos-progress-bar" id="print-progress-bar"></div></div>
+                            </div>
+                        </div>
+                        <!-- Kész nézet -->
+                        <div class="pos-view" id="terminal-done-view">
+                            <div class="pos-done">
+                                <div class="pos-done-icon"><i class="fas fa-check-circle"></i></div>
+                                <p>Nyugta kinyomtatva!</p>
+                                <p class="pos-done-sub">A vásárló megkapta a nyugtát.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <!-- Terminál alja -->
-                <div class="terminal-bottom">
-                    <div class="terminal-led" id="terminal-led"></div>
+                <div class="pos-bottom">
+                    <div class="pos-led" id="terminal-led"></div>
                 </div>
             </div>
-            <button class="terminal-close-btn" id="terminal-close"><i class="fas fa-times"></i> Bezárás</button>
+            <button class="pos-close-btn" id="terminal-close"><i class="fas fa-times"></i> Bezárás</button>
         </div>
     </div>
 
