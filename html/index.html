@@ -336,70 +336,89 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════
-         INVOICE CREATION (Officer UI)
+         INVOICE CREATION (Officer UI) – Paper style
     ════════════════════════════════════════════════════════════ -->
     <div id="invoice-app" class="screen hidden">
-        <div class="invoice-card">
-            <div class="invoice-header">
-                <h3>Számla</h3>
-                <button class="invoice-close" id="invoice-close"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="invoice-body">
-                <div class="invoice-row">
-                    <div class="invoice-field">
-                        <label>Leírás</label>
-                        <input type="text" id="inv-description" placeholder="Termék / szolgáltatás" />
-                    </div>
+        <div class="inv-paper">
+            <button class="inv-close-x" id="invoice-close"><i class="fas fa-times"></i></button>
+            <h1 class="inv-title">INVOICE</h1>
+
+            <!-- Header info row -->
+            <div class="inv-header-row">
+                <div class="inv-header-col">
+                    <div class="inv-label">ISSUER</div>
+                    <div class="inv-issuer-name" id="inv-issuer-name">-</div>
+                    <div class="inv-issuer-job" id="inv-issuer-job">-</div>
                 </div>
-                <div class="invoice-row">
-                    <div class="invoice-field half">
-                        <label>Mennyiség</label>
-                        <input type="number" id="inv-quantity" value="1" min="1" />
-                    </div>
-                    <div class="invoice-field half">
-                        <label>Egységár (Ft)</label>
-                        <input type="number" id="inv-unit" placeholder="Ár" min="0" />
-                    </div>
+                <div class="inv-header-col">
+                    <div class="inv-label">BILL TO</div>
+                    <input type="number" class="inv-input-inline" id="inv-buyer" placeholder="Játékos ID" min="1" />
                 </div>
-                <div class="invoice-row">
-                    <div class="invoice-field">
-                        <label>Adó (%)</label>
-                        <input type="number" id="inv-tax" value="0" min="0" max="100" />
-                    </div>
-                </div>
-                <div class="invoice-row">
-                    <div class="invoice-field full">
-                        <label>Vevő ID</label>
-                        <input type="number" id="inv-buyer" placeholder="Játékos ID" min="1" />
-                    </div>
-                </div>
-                <div class="invoice-row">
-                    <div class="invoice-signature" id="invoice-signature">
-                        <span>Kattints az aláíráshoz</span>
-                    </div>
+                <div class="inv-header-col right">
+                    <div class="inv-date-row"><span class="inv-label">INVOICE DATE</span><span class="inv-date-value" id="inv-date">-</span></div>
+                    <div class="inv-date-row"><span class="inv-label">DUE DATE</span><span class="inv-date-value" id="inv-due-date">-</span></div>
                 </div>
             </div>
-            <div class="invoice-footer">
-                <button class="invoice-submit" id="invoice-submit">Számla kiállítása</button>
+
+            <!-- Items table -->
+            <div class="inv-table">
+                <div class="inv-table-header">
+                    <div class="inv-th inv-th-action"></div>
+                    <div class="inv-th inv-th-qty">QTY</div>
+                    <div class="inv-th inv-th-desc">DESCRIPTION</div>
+                    <div class="inv-th inv-th-price">UNIT PRICE</div>
+                    <div class="inv-th inv-th-amount">AMOUNT</div>
+                </div>
+                <div class="inv-table-body" id="inv-table-body">
+                    <!-- Rows added dynamically -->
+                </div>
+                <button class="inv-add-row-btn" id="inv-add-row"><i class="fas fa-plus"></i> Tétel hozzáadása</button>
             </div>
+
+            <!-- Totals -->
+            <div class="inv-totals">
+                <div class="inv-total-row"><span>Subtotal</span><span id="inv-subtotal">0</span></div>
+                <div class="inv-total-row"><span>Sales Tax <input type="number" class="inv-tax-input" id="inv-tax" value="0" min="0" max="100" />%</span><span id="inv-tax-amount">0</span></div>
+                <div class="inv-total-row total"><span>TOTAL</span><span id="inv-total-value">0 Ft</span></div>
+            </div>
+
+            <!-- Terms -->
+            <div class="inv-terms">
+                <div class="inv-label">TERMS & CONDITIONS</div>
+                <div class="inv-terms-row">
+                    Payment is due within
+                    <select id="inv-due-days">
+                        <option value="7">7 nap</option>
+                        <option value="14" selected>14 nap</option>
+                        <option value="30">30 nap</option>
+                        <option value="60">60 nap</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Signature area -->
+            <div class="inv-signature-area" id="invoice-signature">
+                <span>Kattints az aláíráshoz</span>
+            </div>
+
+            <!-- Submit -->
+            <button class="inv-submit-btn" id="invoice-submit"><i class="fas fa-paper-plane"></i> Számla kiállítása</button>
         </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════
-         INVOICE VIEWER (Player)
+         INVOICE VIEWER (Player receives)
     ════════════════════════════════════════════════════════════ -->
     <div id="invoice-viewer" class="screen hidden">
-        <div class="invoice-card view">
-            <div class="invoice-header view">
-                <h3>Számla</h3>
-                <button class="invoice-close" id="iv-close"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="invoice-body view" id="iv-body">
+        <div class="inv-paper viewer">
+            <button class="inv-close-x" id="iv-close"><i class="fas fa-times"></i></button>
+            <h1 class="inv-title">INVOICE</h1>
+            <div class="inv-viewer-body" id="iv-body">
                 <!-- Populated dynamically -->
             </div>
-            <div class="invoice-footer view">
-                <button class="invoice-pay" id="iv-accept">Elfogadom és fizetek</button>
-                <button class="invoice-pay" id="iv-reject">Elutasítom</button>
+            <div class="inv-viewer-actions">
+                <button class="inv-accept-btn" id="iv-accept"><i class="fas fa-check"></i> Elfogadom és fizetek</button>
+                <button class="inv-reject-btn" id="iv-reject"><i class="fas fa-times"></i> Elutasítom</button>
             </div>
         </div>
     </div>

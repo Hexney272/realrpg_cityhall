@@ -308,26 +308,112 @@
     if(tvPayBank) tvPayBank.addEventListener('click', function(){ post('payTicket',{method:'bank'}); showToast('Banki fizetés...','inform'); closeTicketViewer(); });
 
     // ═══ INVOICE ═══
+    var invoiceRows = [];
+
+    function addInvoiceRow(qty, desc, price) {
+        var body = document.getElementById('inv-table-body');
+        var idx = invoiceRows.length;
+        invoiceRows.push({ qty: qty || 1, desc: desc || '', price: price || 0 });
+        var row = document.createElement('div'); row.className = 'inv-table-row'; row.dataset.idx = idx;
+        row.innerHTML =
+            '<div class="inv-td inv-td-action"><button class="inv-remove-row" data-idx="'+idx+'">−</button></div>' +
+            '<div class="inv-td inv-td-qty"><input type="number" value="'+(qty||1)+'" min="1" data-idx="'+idx+'" data-field="qty" /></div>' +
+            '<div class="inv-td inv-td-desc"><input type="text" placeholder="Leírás" value="'+(desc||'')+'" data-idx="'+idx+'" data-field="desc" /></div>' +
+            '<div class="inv-td inv-td-price"><input type="number" placeholder="0" value="'+(price||'')+'" min="0" data-idx="'+idx+'" data-field="price" /></div>' +
+            '<div class="inv-td inv-td-amount" data-idx="'+idx+'">0</div>';
+        body.appendChild(row);
+        // Bind events
+        row.querySelector('.inv-remove-row').addEventListener('click', function(){ removeInvoiceRow(parseInt(this.dataset.idx)); });
+        row.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){ updateInvoiceRow(parseInt(this.dataset.idx), this.dataset.field, this.value); }); });
+        recalcInvoice();
+    }
+
+    function removeInvoiceRow(idx) {
+        invoiceRows.splice(idx, 1);
+        rebuildInvoiceTable();
+    }
+
+    function updateInvoiceRow(idx, field, val) {
+        if (!invoiceRows[idx]) return;
+        if (field === 'qty') invoiceRows[idx].qty = parseInt(val) || 1;
+        else if (field === 'desc') invoiceRows[idx].desc = val;
+        else if (field === 'price') invoiceRows[idx].price = parseFloat(val) || 0;
+        recalcInvoice();
+    }
+
+    function rebuildInvoiceTable() {
+        var body = document.getElementById('inv-table-body'); body.innerHTML = '';
+        var copy = invoiceRows.slice(); invoiceRows = [];
+        copy.forEach(function(r){ addInvoiceRow(r.qty, r.desc, r.price); });
+    }
+
+    function recalcInvoice() {
+        var subtotal = 0;
+        invoiceRows.forEach(function(r, i) {
+            var amt = r.qty * r.price;
+            subtotal += amt;
+            var amtEl = document.querySelector('.inv-td-amount[data-idx="'+i+'"]');
+            if (amtEl) amtEl.textContent = fmt(amt);
+        });
+        var taxPct = parseInt(document.getElementById('inv-tax').value) || 0;
+        var taxAmt = Math.floor(subtotal * taxPct / 100);
+        document.getElementById('inv-subtotal').textContent = fmt(subtotal);
+        document.getElementById('inv-tax-amount').textContent = fmt(taxAmt);
+        document.getElementById('inv-total-value').textContent = fmt(subtotal + taxAmt) + ' Ft';
+    }
+
+    if (document.getElementById('inv-tax')) {
+        document.getElementById('inv-tax').addEventListener('input', recalcInvoice);
+    }
+    if (document.getElementById('inv-add-row')) {
+        document.getElementById('inv-add-row').addEventListener('click', function(){ addInvoiceRow(1, '', 0); });
+    }
+
     function openInvoiceUI(data){
-        document.getElementById('inv-description').value = '';
-        document.getElementById('inv-quantity').value = '1';
-        document.getElementById('inv-unit').value = '';
-        document.getElementById('inv-tax').value = '0';
-        document.getElementById('inv-buyer').value = '';
+        invoiceRows = [];
+        var body = document.getElementById('inv-table-body'); if(body) body.innerHTML = '';
+        // Set date
+        var today = new Date().toLocaleDateString('hu-HU');
+        if(document.getElementById('inv-date')) document.getElementById('inv-date').textContent = today;
+        if(document.getElementById('inv-due-date')) document.getElementById('inv-due-date').textContent = '-';
+        if(document.getElementById('inv-buyer')) document.getElementById('inv-buyer').value = '';
+        if(document.getElementById('inv-tax')) document.getElementById('inv-tax').value = '0';
+        if(document.getElementById('inv-subtotal')) document.getElementById('inv-subtotal').textContent = '0';
+        if(document.getElementById('inv-tax-amount')) document.getElementById('inv-tax-amount').textContent = '0';
+        if(document.getElementById('inv-total-value')) document.getElementById('inv-total-value').textContent = '0 Ft';
         if(invoiceSignature){ invoiceSignature.classList.remove('signed'); invoiceSignature.innerHTML = '<span>Kattints az aláíráshoz</span>'; }
+        // Add one empty row
+        addInvoiceRow(1, '', 0);
         if(invoiceApp) invoiceApp.classList.remove('hidden');
     }
+
     function closeInvoice(){ if(invoiceApp) invoiceApp.classList.add('hidden'); post('closeInvoice'); post('stopSigning'); }
     if(invoiceClose) invoiceClose.addEventListener('click', closeInvoice);
 
     if(invoiceSubmit) invoiceSubmit.addEventListener('click', function(){
-        var desc = document.getElementById('inv-description').value.trim();
-        var qty = parseInt(document.getElementById('inv-quantity').value) || 1;
-        var unit = parseInt(document.getElementById('inv-unit').value) || 0;
-        var tax = parseInt(document.getElementById('inv-tax').value) || 0;
         var buyer = parseInt(document.getElementById('inv-buyer').value) || 0;
-        if(!desc || !unit || !buyer){ showToast('Kérlek, tölts ki minden mezőt!','error'); return; }
-        post('issueInvoice', { description:desc, quantity:qty, unitPrice:unit, taxPercent:tax, buyer:buyer });
+        if(!buyer){ showToast('Add meg a vevő ID-jét!','error'); return; }
+        if(invoiceRows.length === 0 || !invoiceRows[0].desc){ showToast('Adj hozzá legalább egy tételt!','error'); return; }
+        // Build invoice data from rows
+        var items = [];
+        var subtotal = 0;
+        invoiceRows.forEach(function(r){
+            if(r.desc && r.price > 0){
+                items.push({ qty: r.qty, description: r.desc, unitPrice: r.price });
+                subtotal += r.qty * r.price;
+            }
+        });
+        if(items.length === 0){ showToast('Adj hozzá érvényes tételt!','error'); return; }
+        var taxPct = parseInt(document.getElementById('inv-tax').value) || 0;
+        var dueDays = parseInt(document.getElementById('inv-due-days').value) || 14;
+        // Use first item as main description for server
+        post('issueInvoice', {
+            description: items.map(function(i){ return i.description; }).join(', '),
+            quantity: items.reduce(function(s,i){ return s+i.qty; }, 0),
+            unitPrice: Math.round(subtotal / items.reduce(function(s,i){ return s+i.qty; }, 0)),
+            taxPercent: taxPct,
+            buyer: buyer
+        });
         showToast('Számla kiállítása folyamatban...','inform');
         closeInvoice();
     });
@@ -343,16 +429,16 @@
         var body = document.getElementById('iv-body'); body.innerHTML = '';
         if(!data || !data.invoice){ body.innerHTML = '<p>Nincs adat.</p>'; if(invoiceViewer) invoiceViewer.classList.remove('hidden'); return; }
         var inv = data.invoice;
-        function addInvRow(label, value){
-            var row = document.createElement('div'); row.className = 'invoice-row';
-            row.innerHTML = '<div class="invoice-field"><label>'+esc(label)+'</label><span>'+esc(String(value))+'</span></div>';
+        function addVR(label, value){
+            var row = document.createElement('div'); row.className = 'inv-viewer-row';
+            row.innerHTML = '<span class="vr-label">'+esc(label)+'</span><span class="vr-value">'+esc(String(value))+'</span>';
             body.appendChild(row);
         }
-        addInvRow('Leírás', inv.description);
-        addInvRow('Mennyiség', inv.quantity);
-        addInvRow('Egységár', fmt(inv.unitPrice) + ' Ft');
-        if(inv.taxPercent) addInvRow('Adó', inv.taxPercent + '%');
-        addInvRow('Összesen', fmt(inv.total || (inv.quantity * inv.unitPrice)) + ' Ft');
+        addVR('Leírás', inv.description);
+        addVR('Mennyiség', inv.quantity);
+        addVR('Egységár', fmt(inv.unitPrice) + ' Ft');
+        if(inv.taxPercent) addVR('Adó', inv.taxPercent + '%');
+        addVR('Összesen', fmt(inv.total || (inv.quantity * inv.unitPrice)) + ' Ft');
         if(invoiceViewer) invoiceViewer.classList.remove('hidden');
     }
     function closeInvoiceViewer(){ if(invoiceViewer) invoiceViewer.classList.add('hidden'); post('closeInvoiceViewer'); }
