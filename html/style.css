@@ -171,6 +171,99 @@ body { font-family:'Inter',sans-serif; background:transparent; color:var(--text-
 .pos-close-btn { padding:10px 22px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card); color:var(--text-secondary); font-size:13px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:6px; }
 .pos-close-btn:hover { background:var(--error); color:#fff; border-color:var(--error); }
 
+/* =====================================================
+   RealRPG Terminal NUI Custom Theme (Light POS style)
+   ---------------------------------------------------
+   The original POS device has been restyled to better
+   match the lighter, modern payment interface you
+   provided. Only colours and spacing were adjusted;
+   the underlying markup and functionality remain
+   unchanged. If you wish to revert to the dark theme,
+   simply remove this section.
+===================================================== */
+
+/* Increase overall terminal width for better layout */
+#terminal-app .pos-device { width:360px; }
+
+/* Lighten the screen frame and remove dark borders */
+#terminal-app .pos-screen-frame {
+    background:#f8f8f8;
+    padding:20px;
+    border-left:none;
+    border-right:none;
+}
+
+/* Lighten the main screen background and text */
+#terminal-app .pos-screen {
+    background:#ffffff;
+    color:#222222;
+    border:1px solid #e5e5e5;
+    border-radius:12px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    min-height:auto;
+    padding-bottom:20px;
+}
+
+/* Restyle the header inside the POS screen */
+#terminal-app .pos-screen-header {
+    background:transparent;
+    color:#00a67e;
+    font-size:16px;
+    font-weight:700;
+    border-bottom:1px solid #eeeeee;
+    padding-bottom:10px;
+}
+
+#terminal-app .pos-screen-header i {
+    color:#00a67e;
+    margin-right:8px;
+}
+
+/* Restyle form labels and inputs */
+#terminal-app .pos-form label {
+    color:#666666;
+    font-size:12px;
+    font-weight:600;
+}
+
+#terminal-app .pos-form input {
+    background:#f7f7f7;
+    border:1px solid #dddddd;
+    border-radius:6px;
+    color:#333333;
+    font-size:14px;
+}
+
+#terminal-app .pos-form input:focus {
+    border-color:#00a67e;
+    box-shadow:0 0 0 2px rgba(0,166,126,0.3);
+}
+
+/* Restyle print button */
+#terminal-app .pos-print-btn {
+    background:linear-gradient(135deg,#00a67e,#007e5a);
+    color:#ffffff;
+    font-size:15px;
+    border-radius:8px;
+    margin-top:10px;
+}
+
+#terminal-app .pos-print-btn:hover {
+    box-shadow:0 4px 14px rgba(0,166,126,0.5);
+    transform:translateY(-1px);
+}
+
+/* Restyle bottom LED indicator */
+#terminal-app .pos-led.active {
+    background:#00a67e;
+    box-shadow:0 0 6px #00a67e;
+}
+
+#terminal-app .pos-led.printing {
+    background:#d4a843;
+    box-shadow:0 0 6px #d4a843;
+}
+
 
 /* TOAST */
 #toast-container { position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
