@@ -1,0 +1,18 @@
+/* Simple styling for the placeholder page.  You can extend this file
+   to create a full user interface if required. */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f5f7;
+    color: #2c3e50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+h1 {
+    margin-bottom: 0.5em;
+}
+p {
+    color: #7f8c8d;
+}
