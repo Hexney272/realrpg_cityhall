@@ -5,9 +5,7 @@ local lib = lib
 local CreateThread = CreateThread
 local PlayerPedId = PlayerPedId
 local GetEntityCoords = GetEntityCoords
-local GetDistanceBetweenCoords = #(vector3(0,0,0) - vector3(0,0,0)) -- replaced later
 local DrawMarker = DrawMarker
-local HasJobAccess = nil
 
 -- Helper to check if player has one of the specified jobs.  Assumes ESX
 -- 1.2/Legacy or qb-core style job table with `name` field.  Feel free to
@@ -27,6 +25,7 @@ end
 CreateThread(function()
     local coords = Config.CityHall.coords
     local marker = Config.CityHall.marker
+    local isShowingUI = false
     while true do
         local ped = PlayerPedId()
         local pedCoords = GetEntityCoords(ped)
@@ -34,17 +33,27 @@ CreateThread(function()
         if dist < Config.CityHall.markerDistance then
             DrawMarker(marker.type, coords.x, coords.y, coords.z - 0.95, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, marker.size.x, marker.size.y, marker.size.z, marker.color.r, marker.color.g, marker.color.b, marker.color.a, false, false, 2, nil, nil, false)
             if dist < Config.CityHall.interactDistance then
-                lib.showTextUI('[E] Városháza szolgáltatások', { position = 'right-center' })
+                if not isShowingUI then
+                    lib.showTextUI('[E] Városháza szolgáltatások', { position = 'right-center' })
+                    isShowingUI = true
+                end
                 if IsControlJustReleased(0, 38) then
                     openMainMenu()
                 end
             else
-                lib.hideTextUI()
+                if isShowingUI then
+                    lib.hideTextUI()
+                    isShowingUI = false
+                end
             end
+            Wait(0)
         else
-            lib.hideTextUI()
+            if isShowingUI then
+                lib.hideTextUI()
+                isShowingUI = false
+            end
+            Wait(1000)
         end
-        Wait(0)
     end
 end)
 

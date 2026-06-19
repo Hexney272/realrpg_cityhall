@@ -2,6 +2,14 @@ local Config = Config
 
 local DocumentQueue = {}
 
+-- Helper: check if job belongs to allowed list
+function hasJob(jobName, allowed)
+    for _, v in ipairs(allowed) do
+        if v == jobName then return true end
+    end
+    return false
+end
+
 -- Initialise database tables on resource start.  These commands are idempotent; they
 -- will create tables if they don't exist.  Adjust the field types if your
 -- database uses different column lengths or charsets.
@@ -49,10 +57,9 @@ CreateThread(function()
 end)
 
 -- Utility: get ESX player object; adjust if using another framework
+local ESX = exports['es_extended']:getSharedObject()
+
 local function getPlayer(id)
-    if ESX == nil then
-        TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-    end
     return ESX and ESX.GetPlayerFromId(id)
 end
 
@@ -274,14 +281,6 @@ RegisterNetEvent('realrpg_cityhall:vinCheck', function(query)
     end)
 end)
 
--- Helper: check if job belongs to allowed list
-function hasJob(jobName, allowed)
-    for _, v in ipairs(allowed) do
-        if v == jobName then return true end
-    end
-    return false
-end
-
 -- Search fines and invoices by issuer or receiver name.  Only clerks can call
 -- this event.  It returns matching rows to the client for display.  The
 -- search term matches partial names.  Results include id, issuer name,
@@ -404,13 +403,31 @@ exports('giveBill', function(src, billType, data, giveItem, cb)
         local qty = tonumber(first.qty) or 1
         local unit = tonumber(first.unitPrice) or (tonumber(data.amount) or 0)
         local desc = first.description or data.issuerName or 'Számla'
-        TriggerEvent('realrpg_cityhall:issueInvoice', playerId, {
-            description = desc,
-            quantity = qty,
-            unitPrice = unit,
-            taxPercent = tonumber(data.taxFromInvoice) or 0
-        })
-        if cb then cb(0) end
+        local taxPercent = tonumber(data.taxFromInvoice) or 0
+        local subtotal = qty * unit
+        local taxAmount = math.floor(subtotal * taxPercent / 100)
+        local total = subtotal + taxAmount
+        local issuedAt = os.time()
+        local dueAt = issuedAt + (Config.Fines.defaultDueDays * 24 * 60 * 60)
+        local target = getPlayer(playerId)
+        if not target then
+            if cb then cb(nil) end
+            return
+        end
+        local issuerIdentifier = data.issuerIdentifier or 'system'
+        exports.oxmysql:insert('INSERT INTO realrpg_invoices (issuer, target, description, quantity, unit_price, tax_percent, issued_at, due_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', {
+            issuerIdentifier,
+            target.identifier,
+            desc,
+            qty,
+            unit,
+            taxPercent,
+            issuedAt,
+            dueAt
+        }, function(id)
+            TriggerClientEvent('realrpg_cityhall:notify', playerId, 'Számla', ('Új számlát kaptál: %s - %d Ft'):format(desc, total), 'inform')
+            if cb then cb(id or 0) end
+        end)
         return
     end
     -- For tickets or traffic tickets, treat as fine
@@ -418,12 +435,25 @@ exports('giveBill', function(src, billType, data, giveItem, cb)
         local amount = tonumber(data.amount) or 0
         local desc = data.violation or data.description or 'Bírság'
         local dueDays = tonumber(data.dateToPay) or 0
-        TriggerEvent('realrpg_cityhall:issueFine', playerId, {
-            description = desc,
-            amount = amount,
-            dueDays = dueDays
-        })
-        if cb then cb(0) end
+        local target = getPlayer(playerId)
+        if not target then
+            if cb then cb(nil) end
+            return
+        end
+        local issuerIdentifier = data.issuerIdentifier or 'system'
+        local issuedAt = os.time()
+        local dueAt = issuedAt + (dueDays * 24 * 60 * 60)
+        exports.oxmysql:insert('INSERT INTO realrpg_fines (issuer, target, amount, description, issued_at, due_at) VALUES (?, ?, ?, ?, ?, ?)', {
+            issuerIdentifier,
+            target.identifier,
+            amount,
+            desc,
+            issuedAt,
+            dueAt
+        }, function(insertId)
+            TriggerClientEvent('realrpg_cityhall:notify', playerId, 'Bírság', ('Új bírságot kaptál: %d Ft - %s'):format(amount, desc), 'inform')
+            if cb then cb(insertId or 0) end
+        end)
         return
     end
     -- Unknown type: ignore
@@ -489,15 +519,18 @@ exports('addVehicleInsurance', function(plate, identifier, durationDays, cb)
         if cb then cb(false) end
         return
     end
-    local expiresAt = os.time() + (days * 24 * 60 * 60)
+    local durationSeconds = days * 24 * 60 * 60
     local now = os.time()
-    exports.oxmysql:update('INSERT INTO realrpg_insurances (plate, identifier, expires_at, purchased_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE expires_at = GREATEST(expires_at, ?) + ?, purchased_at = ?', {
+    local expiresAt = now + durationSeconds
+    -- If existing insurance is still valid, extend from its current expiry.
+    -- If expired or non-existent, start from now.
+    exports.oxmysql:update('INSERT INTO realrpg_insurances (plate, identifier, expires_at, purchased_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE expires_at = IF(expires_at > ?, expires_at + ?, ? + ?), purchased_at = ?', {
         plate,
         identifier,
         expiresAt,
         now,
-        expiresAt,
-        (days * 24 * 60 * 60),
+        now, durationSeconds, -- IF condition: if current expires_at > now (still valid), extend from it
+        now, durationSeconds, -- ELSE: start fresh from now
         now
     }, function()
         if cb then cb(true) end
