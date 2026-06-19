@@ -111,6 +111,7 @@
     description = 'Hordozható fizetési terminál, amellyel számlákat és nyugtákat lehet kiállítani. Használatához hőpapírra van szükség.',
     client = {
         image = 'payment_terminal.png',
+        export = 'realrpg_cityhall.useTerminal',
         formatMetadata = function(metadata)
             return ('Eszköz azonosító: %s'):format(metadata.serial or 'ismeretlen')
         end
@@ -140,6 +141,7 @@
     description = 'Hivatalos nyugta egy vásárlásról. Metaadatokban tartalmazza a tranzakció részleteit.',
     client = {
         image = 'receipt.png',
+        export = 'realrpg_cityhall.useReceipt',
         formatMetadata = function(metadata)
             local lines = {}
             if metadata.description then table.insert(lines, ('Tétel: %s'):format(metadata.description)) end

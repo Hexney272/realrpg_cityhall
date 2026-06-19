@@ -1,395 +1,316 @@
-// RealRPG Városháza NUI - app.js
-
 (function () {
     'use strict';
 
-    const app = document.getElementById('app');
-    const closeBtn = document.getElementById('close-btn');
-    const pageTitle = document.getElementById('page-title');
-    const navItems = document.querySelectorAll('.nav-item');
-    const pages = document.querySelectorAll('.page');
+    // ─── Selectors ──────────────────────────────────────────────────────────────
+    const cityhallApp = document.getElementById('cityhall-app');
+    const receiptViewer = document.getElementById('receipt-viewer');
+    const terminalApp = document.getElementById('terminal-app');
+    const toastContainer = document.getElementById('toast-container');
 
-    // State
-    let currentPage = 'main';
+    // Cityhall
+    const chClose = document.getElementById('ch-close');
+    const chPageTitle = document.getElementById('ch-page-title');
+    const chNavItems = document.querySelectorAll('.ch-nav-item');
+    const chPages = document.querySelectorAll('.ch-page');
+
+    // Terminal
+    const terminalClose = document.getElementById('terminal-close');
+    const terminalFormView = document.getElementById('terminal-form-view');
+    const terminalPrintView = document.getElementById('terminal-print-view');
+    const terminalDoneView = document.getElementById('terminal-done-view');
+    const terminalPaper = document.getElementById('terminal-paper');
+    const terminalLed = document.getElementById('terminal-led');
+    const printProgressBar = document.getElementById('print-progress-bar');
+
+    // Receipt viewer
+    const rvClose = document.getElementById('rv-close');
+
+    // ─── State ──────────────────────────────────────────────────────────────────
     let config = {};
-    let permissions = { fines: false, vin: false, receipt: false };
+    let permissions = {};
+    let currentPage = 'main';
 
     // ─── NUI Message Handler ────────────────────────────────────────────────────
-
     window.addEventListener('message', function (event) {
-        const data = event.data;
-
+        var data = event.data;
         switch (data.action) {
-            case 'open':
-                openUI(data);
-                break;
-            case 'close':
-                closeUI();
-                break;
-            case 'vinResult':
-                showVINResult(data.info);
-                break;
-            case 'notify':
-                showToast(data.message, data.type || 'inform');
-                break;
-            case 'documentReady':
-                showToast('Okmány elkészült: ' + (data.item || ''), 'success');
-                break;
+            case 'openCityHall': openCityHall(data); break;
+            case 'closeCityHall': closeCityHall(); break;
+            case 'openReceipt': openReceipt(data); break;
+            case 'closeReceipt': closeReceipt(); break;
+            case 'openTerminal': openTerminal(data); break;
+            case 'closeTerminal': closeTerminal(); break;
+            case 'vinResult': showVINResult(data.info); break;
+            case 'notify': showToast(data.message, data.type || 'inform'); break;
+            case 'printDone': onPrintDone(); break;
         }
     });
 
-    // ─── Open / Close ───────────────────────────────────────────────────────────
-
-    function openUI(data) {
-        // Store config and permissions
-        if (data.config) config = data.config;
-        if (data.permissions) permissions = data.permissions;
-
-        // Show/hide nav items based on permissions
-        toggleNavVisibility('nav-fines', permissions.fines);
-        toggleNavVisibility('nav-vin', permissions.vin);
-        toggleNavVisibility('nav-receipt', permissions.receipt);
-
-        // Set insurance info from config
-        if (config.insurancePrice !== undefined) {
-            document.getElementById('insurance-price').textContent = formatMoney(config.insurancePrice) + ' Ft';
-        }
-        if (config.insuranceDuration !== undefined) {
-            document.getElementById('insurance-duration').textContent = config.insuranceDuration + ' nap';
-        }
-
-        // Populate documents
-        if (config.documents) {
-            populateDocuments(config.documents);
-        }
-
-        // Reset to main page
-        switchPage('main');
-
-        // Show app
-        app.classList.remove('hidden');
-    }
-
-    function closeUI() {
-        app.classList.add('hidden');
-        fetch('https://realrpg_cityhall/closeUI', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-        });
-    }
-
-    function toggleNavVisibility(id, show) {
-        const el = document.getElementById(id);
-        if (el) {
-            if (show) {
-                el.classList.remove('nav-hidden');
-            } else {
-                el.classList.add('nav-hidden');
-            }
-        }
-    }
-
-    // ─── Navigation ─────────────────────────────────────────────────────────────
-
-    const pageTitles = {
+    // ─── City Hall ──────────────────────────────────────────────────────────────
+    var pageTitles = {
         main: 'Üdvözlünk a Városházán',
         insurance: 'Kötelező biztosítás',
         documents: 'Okmányok',
-        fines: 'Bírságok & Számlák',
-        vin: 'VIN Ellenőrzés',
-        receipt: 'Nyugta kiállítása'
+        vin: 'VIN Ellenőrzés'
     };
 
-    navItems.forEach(function (item) {
-        item.addEventListener('click', function (e) {
-            e.preventDefault();
-            const page = this.getAttribute('data-page');
-            switchPage(page);
-        });
-    });
+    function openCityHall(data) {
+        if (data.config) config = data.config;
+        if (data.permissions) permissions = data.permissions;
+
+        // VIN visibility
+        var navVin = document.getElementById('nav-vin');
+        if (navVin) {
+            if (permissions.vin) navVin.classList.remove('nav-hidden');
+            else navVin.classList.add('nav-hidden');
+        }
+
+        // Insurance info
+        if (config.insurancePrice !== undefined)
+            document.getElementById('ins-price').textContent = formatMoney(config.insurancePrice) + ' Ft';
+        if (config.insuranceDuration !== undefined)
+            document.getElementById('ins-duration').textContent = config.insuranceDuration + ' nap';
+
+        // Docs
+        if (config.documents) populateDocuments(config.documents);
+
+        switchPage('main');
+        cityhallApp.classList.remove('hidden');
+    }
+
+    function closeCityHall() {
+        cityhallApp.classList.add('hidden');
+        post('closeUI');
+    }
 
     function switchPage(page) {
         currentPage = page;
-
-        // Update nav active state
-        navItems.forEach(function (item) {
-            item.classList.remove('active');
-            if (item.getAttribute('data-page') === page) {
-                item.classList.add('active');
-            }
+        chNavItems.forEach(function (item) {
+            item.classList.toggle('active', item.getAttribute('data-page') === page);
         });
-
-        // Update pages
-        pages.forEach(function (p) {
-            p.classList.remove('active');
-        });
-        const target = document.getElementById('page-' + page);
+        chPages.forEach(function (p) { p.classList.remove('active'); });
+        var target = document.getElementById('ch-page-' + page);
         if (target) target.classList.add('active');
-
-        // Update title
-        pageTitle.textContent = pageTitles[page] || 'Városháza';
-
-        // Hide VIN result when switching pages
-        if (page !== 'vin') {
-            document.getElementById('vin-result').classList.add('hidden');
-        }
+        chPageTitle.textContent = pageTitles[page] || 'Városháza';
+        if (page !== 'vin') document.getElementById('vin-result').classList.add('hidden');
     }
 
-    // ─── Tabs ───────────────────────────────────────────────────────────────────
-
-    document.querySelectorAll('.tab').forEach(function (tab) {
-        tab.addEventListener('click', function () {
-            const tabId = this.getAttribute('data-tab');
-            const parent = this.closest('.page');
-
-            // Update tab buttons
-            parent.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
-            this.classList.add('active');
-
-            // Update tab content
-            parent.querySelectorAll('.tab-content').forEach(function (tc) { tc.classList.remove('active'); });
-            const content = document.getElementById(tabId);
-            if (content) content.classList.add('active');
+    chNavItems.forEach(function (item) {
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            switchPage(this.getAttribute('data-page'));
         });
     });
 
-    // ─── Close Button & Escape Key ─────────────────────────────────────────────
+    chClose.addEventListener('click', closeCityHall);
 
-    closeBtn.addEventListener('click', closeUI);
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            closeUI();
-        }
-    });
-
-    // ─── Insurance ──────────────────────────────────────────────────────────────
-
+    // Insurance
     document.getElementById('btn-buy-insurance').addEventListener('click', function () {
-        const plate = document.getElementById('insurance-plate').value.trim();
-        if (!plate) {
-            showToast('Add meg a rendszámot!', 'error');
-            return;
-        }
-        fetch('https://realrpg_cityhall/buyInsurance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plate: plate })
-        });
-        document.getElementById('insurance-plate').value = '';
+        var plate = document.getElementById('ins-plate').value.trim();
+        if (!plate) { showToast('Add meg a rendszámot!', 'error'); return; }
+        post('buyInsurance', { plate: plate });
+        document.getElementById('ins-plate').value = '';
         showToast('Biztosítás kérelem elküldve...', 'inform');
     });
 
-    // ─── Documents ──────────────────────────────────────────────────────────────
-
+    // Documents
     function populateDocuments(docs) {
-        const grid = document.getElementById('documents-grid');
+        var grid = document.getElementById('ch-docs-grid');
         grid.innerHTML = '';
-
         docs.forEach(function (doc) {
-            const card = document.createElement('div');
-            card.className = 'doc-card';
-            card.innerHTML = 
+            var card = document.createElement('div');
+            card.className = 'ch-doc-card';
+            card.innerHTML =
                 '<div class="doc-icon"><i class="fas fa-file-alt"></i></div>' +
-                '<div class="doc-title">' + escapeHtml(doc.label) + '</div>' +
+                '<div class="doc-title">' + esc(doc.label) + '</div>' +
                 '<div class="doc-meta">' + (doc.wait > 0 ? 'Feldolgozás: ' + doc.wait + 's' : 'Azonnal kész') + '</div>' +
                 '<div class="doc-price">' + formatMoney(doc.price) + ' Ft</div>';
-
             card.addEventListener('click', function () {
-                fetch('https://realrpg_cityhall/requestDocument', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ docId: doc.id })
-                });
+                post('requestDocument', { docId: doc.id });
                 showToast(doc.label + ' igénylés elküldve...', 'inform');
             });
-
             grid.appendChild(card);
         });
     }
 
-    // ─── Fines ──────────────────────────────────────────────────────────────────
-
-    document.getElementById('btn-issue-fine').addEventListener('click', function () {
-        const targetId = parseInt(document.getElementById('fine-target').value);
-        const desc = document.getElementById('fine-desc').value.trim();
-        const amount = parseInt(document.getElementById('fine-amount').value);
-        const due = parseInt(document.getElementById('fine-due').value) || 0;
-
-        if (!targetId || !desc || !amount) {
-            showToast('Minden mező kitöltése kötelező!', 'error');
-            return;
-        }
-
-        fetch('https://realrpg_cityhall/issueFine', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                targetId: targetId,
-                description: desc,
-                amount: amount,
-                dueDays: due
-            })
-        });
-
-        // Clear form
-        document.getElementById('fine-target').value = '';
-        document.getElementById('fine-desc').value = '';
-        document.getElementById('fine-amount').value = '';
-        document.getElementById('fine-due').value = '';
-        showToast('Bírság kiállítás elküldve...', 'inform');
-    });
-
-    // ─── Invoices ───────────────────────────────────────────────────────────────
-
-    document.getElementById('btn-issue-invoice').addEventListener('click', function () {
-        const targetId = parseInt(document.getElementById('invoice-target').value);
-        const desc = document.getElementById('invoice-desc').value.trim();
-        const qty = parseInt(document.getElementById('invoice-qty').value) || 1;
-        const price = parseInt(document.getElementById('invoice-price').value);
-        const tax = parseInt(document.getElementById('invoice-tax').value) || 0;
-
-        if (!targetId || !desc || !price) {
-            showToast('Minden mező kitöltése kötelező!', 'error');
-            return;
-        }
-
-        fetch('https://realrpg_cityhall/issueInvoice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                targetId: targetId,
-                description: desc,
-                quantity: qty,
-                unitPrice: price,
-                taxPercent: tax
-            })
-        });
-
-        // Clear form
-        document.getElementById('invoice-target').value = '';
-        document.getElementById('invoice-desc').value = '';
-        document.getElementById('invoice-qty').value = '1';
-        document.getElementById('invoice-price').value = '';
-        document.getElementById('invoice-tax').value = '0';
-        showToast('Számla kiállítás elküldve...', 'inform');
-    });
-
-    // ─── VIN Check ──────────────────────────────────────────────────────────────
-
+    // VIN
     document.getElementById('btn-vin-check').addEventListener('click', function () {
-        const query = document.getElementById('vin-query').value.trim();
-        if (!query) {
-            showToast('Add meg a rendszámot vagy VIN számot!', 'error');
-            return;
-        }
-
-        fetch('https://realrpg_cityhall/vinCheck', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query })
-        });
+        var query = document.getElementById('vin-query').value.trim();
+        if (!query) { showToast('Add meg a rendszámot!', 'error'); return; }
+        post('vinCheck', { query: query });
         showToast('Lekérdezés folyamatban...', 'inform');
     });
 
     function showVINResult(info) {
-        const container = document.getElementById('vin-result');
-        const grid = document.getElementById('vin-result-grid');
+        var container = document.getElementById('vin-result');
+        var grid = document.getElementById('vin-result-grid');
         grid.innerHTML = '';
-
         if (!info || (!info.owner && !info.plate && !info.model)) {
-            grid.innerHTML = '<div class="result-item" style="grid-column: 1/-1;"><div class="result-label">Eredmény</div><div class="result-value">Nem található információ.</div></div>';
+            grid.innerHTML = '<div class="ch-result-item" style="grid-column:1/-1;"><div class="res-label">Eredmény</div><div class="res-value">Nem található információ.</div></div>';
             container.classList.remove('hidden');
             return;
         }
-
-        if (info.owner) {
-            grid.innerHTML += '<div class="result-item"><div class="result-label">Tulajdonos</div><div class="result-value">' + escapeHtml(info.owner) + '</div></div>';
-        }
-        if (info.plate) {
-            grid.innerHTML += '<div class="result-item"><div class="result-label">Rendszám</div><div class="result-value">' + escapeHtml(info.plate) + '</div></div>';
-        }
-        if (info.model) {
-            grid.innerHTML += '<div class="result-item"><div class="result-label">Típus</div><div class="result-value">' + escapeHtml(info.model) + '</div></div>';
-        }
+        if (info.owner) grid.innerHTML += '<div class="ch-result-item"><div class="res-label">Tulajdonos</div><div class="res-value">' + esc(info.owner) + '</div></div>';
+        if (info.plate) grid.innerHTML += '<div class="ch-result-item"><div class="res-label">Rendszám</div><div class="res-value">' + esc(info.plate) + '</div></div>';
+        if (info.model) grid.innerHTML += '<div class="ch-result-item"><div class="res-label">Típus</div><div class="res-value">' + esc(info.model) + '</div></div>';
         if (info.insured !== undefined) {
-            var insuredClass = info.insured ? 'insured' : 'not-insured';
-            var insuredText = info.insured ? 'Érvényes' : 'Nincs / Lejárt';
-            grid.innerHTML += '<div class="result-item"><div class="result-label">Biztosítás</div><div class="result-value ' + insuredClass + '">' + insuredText + '</div></div>';
+            var cls = info.insured ? 'insured' : 'not-insured';
+            var txt = info.insured ? 'Érvényes' : 'Nincs / Lejárt';
+            grid.innerHTML += '<div class="ch-result-item"><div class="res-label">Biztosítás</div><div class="res-value ' + cls + '">' + txt + '</div></div>';
         }
-
         container.classList.remove('hidden');
     }
 
-    // ─── Receipt ────────────────────────────────────────────────────────────────
+    // ─── Receipt Viewer ─────────────────────────────────────────────────────────
+    function openReceipt(data) {
+        var meta = data.metadata || {};
+        document.getElementById('rv-seller').textContent = meta.seller || 'Ismeretlen';
+        document.getElementById('rv-serial').textContent = meta.serial || '-';
+        document.getElementById('rv-date').textContent = meta.date || '-';
+        document.getElementById('rv-description').textContent = meta.description || '-';
+        document.getElementById('rv-quantity').textContent = (meta.quantity || 1) + ' db';
+        document.getElementById('rv-total').textContent = formatMoney(meta.total || 0) + ' Ft';
+        receiptViewer.classList.remove('hidden');
+    }
 
-    document.getElementById('btn-issue-receipt').addEventListener('click', function () {
-        const targetId = parseInt(document.getElementById('receipt-target').value);
-        const desc = document.getElementById('receipt-desc').value.trim();
-        const qty = parseInt(document.getElementById('receipt-qty').value) || 1;
-        const price = parseInt(document.getElementById('receipt-price').value);
-        const tax = parseInt(document.getElementById('receipt-tax').value) || 0;
+    function closeReceipt() {
+        receiptViewer.classList.add('hidden');
+        post('closeReceipt');
+    }
 
-        if (!targetId || !desc || !price) {
+    rvClose.addEventListener('click', closeReceipt);
+
+    // ─── Payment Terminal ───────────────────────────────────────────────────────
+    function openTerminal(data) {
+        // Reset to form view
+        showTerminalView('form');
+        terminalPaper.classList.add('hidden');
+        terminalPaper.classList.remove('printing');
+        terminalLed.className = 'terminal-led active';
+        printProgressBar.style.width = '0%';
+        // Clear form
+        document.getElementById('t-buyer-id').value = '';
+        document.getElementById('t-description').value = '';
+        document.getElementById('t-quantity').value = '1';
+        document.getElementById('t-price').value = '';
+        document.getElementById('t-tax').value = '0';
+        terminalApp.classList.remove('hidden');
+    }
+
+    function closeTerminal() {
+        terminalApp.classList.add('hidden');
+        post('closeTerminal');
+    }
+
+    terminalClose.addEventListener('click', closeTerminal);
+
+    document.getElementById('btn-terminal-print').addEventListener('click', function () {
+        var buyerId = parseInt(document.getElementById('t-buyer-id').value);
+        var desc = document.getElementById('t-description').value.trim();
+        var qty = parseInt(document.getElementById('t-quantity').value) || 1;
+        var price = parseInt(document.getElementById('t-price').value);
+        var tax = parseInt(document.getElementById('t-tax').value) || 0;
+
+        if (!buyerId || !desc || !price) {
             showToast('Minden mező kitöltése kötelező!', 'error');
             return;
         }
 
-        fetch('https://realrpg_cityhall/issueReceipt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                targetId: targetId,
-                description: desc,
-                quantity: qty,
-                unitPrice: price,
-                taxPercent: tax
-            })
-        });
+        // Switch to print view
+        showTerminalView('print');
+        terminalLed.className = 'terminal-led printing';
 
-        // Clear form
-        document.getElementById('receipt-target').value = '';
-        document.getElementById('receipt-desc').value = '';
-        document.getElementById('receipt-qty').value = '1';
-        document.getElementById('receipt-price').value = '';
-        document.getElementById('receipt-tax').value = '0';
-        showToast('Nyugta kiállítás elküldve...', 'inform');
+        // Start progress animation
+        var progress = 0;
+        var interval = setInterval(function () {
+            progress += 2;
+            printProgressBar.style.width = progress + '%';
+            if (progress >= 100) {
+                clearInterval(interval);
+            }
+        }, 50);
+
+        // Show paper coming out
+        setTimeout(function () {
+            terminalPaper.classList.remove('hidden');
+            setTimeout(function () {
+                terminalPaper.classList.add('printing');
+            }, 50);
+        }, 1000);
+
+        // Send to server
+        post('issueReceipt', {
+            targetId: buyerId,
+            description: desc,
+            quantity: qty,
+            unitPrice: price,
+            taxPercent: tax
+        });
     });
 
-    // ─── Toast Notifications ────────────────────────────────────────────────────
-
-    function showToast(message, type) {
-        type = type || 'inform';
-        var toast = document.createElement('div');
-        toast.className = 'toast ' + type;
-
-        var icon = 'fa-info-circle';
-        if (type === 'success') icon = 'fa-check-circle';
-        else if (type === 'error') icon = 'fa-exclamation-circle';
-
-        toast.innerHTML = '<i class="fas ' + icon + '"></i><span>' + escapeHtml(message) + '</span>';
-        document.body.appendChild(toast);
-
+    function onPrintDone() {
+        // Show done view after a small delay
         setTimeout(function () {
-            toast.style.animation = 'toastOut 0.3s ease forwards';
+            showTerminalView('done');
+            terminalLed.className = 'terminal-led active';
+            // Auto close after 3 seconds
             setTimeout(function () {
-                if (toast.parentNode) toast.parentNode.removeChild(toast);
-            }, 300);
-        }, 4000);
+                closeTerminal();
+            }, 3000);
+        }, 500);
     }
 
+    function showTerminalView(view) {
+        terminalFormView.classList.remove('active');
+        terminalPrintView.classList.remove('active');
+        terminalDoneView.classList.remove('active');
+        if (view === 'form') terminalFormView.classList.add('active');
+        else if (view === 'print') terminalPrintView.classList.add('active');
+        else if (view === 'done') terminalDoneView.classList.add('active');
+    }
+
+    // ─── Escape Key ─────────────────────────────────────────────────────────────
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            if (!cityhallApp.classList.contains('hidden')) closeCityHall();
+            else if (!receiptViewer.classList.contains('hidden')) closeReceipt();
+            else if (!terminalApp.classList.contains('hidden')) closeTerminal();
+        }
+    });
+
     // ─── Helpers ────────────────────────────────────────────────────────────────
+    function post(name, data) {
+        fetch('https://realrpg_cityhall/' + name, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data || {})
+        }).catch(function () {});
+    }
 
     function formatMoney(amount) {
         return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
     }
 
-    function escapeHtml(text) {
+    function esc(text) {
         if (!text) return '';
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(text));
+        return d.innerHTML;
+    }
+
+    function showToast(message, type) {
+        type = type || 'inform';
+        var toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        var icon = 'fa-info-circle';
+        if (type === 'success') icon = 'fa-check-circle';
+        else if (type === 'error') icon = 'fa-exclamation-circle';
+        toast.innerHTML = '<i class="fas ' + icon + '"></i><span>' + esc(message) + '</span>';
+        toastContainer.appendChild(toast);
+        setTimeout(function () {
+            toast.style.animation = 'toastOut .3s ease forwards';
+            setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+        }, 4000);
     }
 
 })();

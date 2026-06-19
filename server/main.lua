@@ -363,6 +363,7 @@ RegisterNetEvent('realrpg_cityhall:issueReceipt', function(targetId, data)
     }
     -- Give receipt to buyer
     exports.ox_inventory:AddItem(buyerId, 'receipt', 1, metadata)
+    TriggerClientEvent('realrpg_cityhall:printDone', src)
     TriggerClientEvent('realrpg_cityhall:notify', src, 'Nyugta', ('Nyugta sikeresen kiállítva %d Ft értékben.'):format(total), 'success')
     TriggerClientEvent('realrpg_cityhall:notify', buyerId, 'Nyugta', ('Új nyugtát kaptál: %s - %d Ft'):format(metadata.description, total), 'inform')
 end)
