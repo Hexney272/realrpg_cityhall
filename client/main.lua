@@ -7,12 +7,13 @@ local PlayerPedId = PlayerPedId
 local GetEntityCoords = GetEntityCoords
 local DrawMarker = DrawMarker
 
--- Helper to check if player has one of the specified jobs.  Assumes ESX
--- 1.2/Legacy or qb-core style job table with `name` field.  Feel free to
--- customise this function to suit your framework.
+-- Helper to check if player has one of the specified jobs.  Uses ESX
+-- PlayerData to retrieve the current job name.
+local ESX = exports['es_extended']:getSharedObject()
+
 local function hasJob(jobNames)
     if not jobNames or #jobNames == 0 then return false end
-    local playerData = exports.ox_core and exports.ox_core:getPlayer() or nil
+    local playerData = ESX.GetPlayerData()
     if playerData and playerData.job then
         for _, job in pairs(jobNames) do
             if playerData.job.name == job then return true end
