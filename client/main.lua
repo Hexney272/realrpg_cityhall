@@ -160,19 +160,14 @@ RegisterNetEvent('realrpg_cityhall:printDone', function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════════
--- ITEM USE EVENTS (ox_inventory)
+-- ITEM USE EXPORTS (seerpg_inventory / ox_inventory compatible)
+-- Az inventory client.export = 'realrpg_cityhall.useReceipt' mezővel
+-- hívja meg ezeket. A data tábla tartalmazza: name, slot, count, metadata
 -- ═══════════════════════════════════════════════════════════════════
 
--- Receipt item: when player uses it, open the viewer
-exports.ox_inventory:displayMetadata('receipt', {
-    { label = 'Tétel', value = 'description' },
-    { label = 'Összeg', value = 'total' }
-})
-
--- Register usable items
-exports('useReceipt', function(data, slot)
-    local metadata = slot.metadata or {}
-    -- Format date if available
+-- Receipt item: open viewer NUI when used
+exports('useReceipt', function(data)
+    local metadata = data.metadata or {}
     local dateStr = '-'
     if metadata.issuedAt then
         dateStr = os.date('%Y.%m.%d %H:%M', metadata.issuedAt)
@@ -180,7 +175,7 @@ exports('useReceipt', function(data, slot)
 
     openReceiptViewer({
         seller = metadata.seller or 'Ismeretlen',
-        serial = metadata.serial or ('-'),
+        serial = metadata.serial or '-',
         date = dateStr,
         description = metadata.description or '-',
         quantity = metadata.quantity or 1,
@@ -188,17 +183,10 @@ exports('useReceipt', function(data, slot)
     })
 end)
 
-exports('useTerminal', function(data, slot)
-    -- Check if player has thermal paper
-    local paperCount = exports.ox_inventory:Search('count', 'thermal_paper') or 0
-    if paperCount < 1 then
-        exports.ox_lib:notify({
-            title = 'Terminál',
-            description = 'Nincs hőpapír a terminálban!',
-            type = 'error'
-        })
-        return
-    end
+-- Payment terminal item: open terminal NUI when used
+exports('useTerminal', function(data)
+    -- A szerver oldal ellenőrzi a hőpapírt a receipt kiállításakor.
+    -- Itt csak megnyitjuk a terminál NUI-t.
     openTerminalUI()
 end)
 
